@@ -2,8 +2,15 @@
 
 | Hora (Lisboa) | Evento | Branch | Commit | Autor | Ferramenta | O que mudou (1 linha) | Revisão |
 |---|---|---|---|---|---|---|---|
-| 2026-10-27 12:35 | commit local (sem push) | joao/kb | 4c0b81c | João Rodrigues | Codex | KB: cartões, extratos, FIN e prevenção do incumprimento; 8/8 perguntas novas e 5/5 regressões na simulação com PR #10 | `docs/KB_JOAO_VALIDACAO.md`; revisão cruzada pendente |
-| 2026-10-27 12:42 | push + abertura de PR | joao/kb | e3c8956 (conteúdo: 4c0b81c) | João Rodrigues | Codex | Publicada a KB do João com autorização; upstream corrigido para origin/joao/kb | [PR #12](https://github.com/luislamy/ainnovation-hackathon-2026/pull/12); revisão cruzada pendente |
-| 2026-10-27 12:49 | merge local de origin/main (sem push) | joao/kb | 606a05b | João Rodrigues | Codex | Integrada a API e KB já aprovadas em main (1416dd9) para avaliar o corpus completo | `docs/KB_COBERTURA_JOAO.md`; nenhum conflito |
-| 2026-10-27 12:51 | commit local (sem push) | joao/kb | ef770a3 | João Rodrigues | Codex | Quatro fontes oficiais novas; mapa dos 21 UCs; pesquisa BM25: 24/26 casos passaram, 2 limites entre jornadas; pytest indisponível | `docs/KB_COBERTURA_JOAO.md`; revisão cruzada pendente |
-| 2026-10-27 12:53 | push + atualização de PR | joao/kb | 2d840e5 (conteúdo: ef770a3) | João Rodrigues | Codex | Segunda entrega publicada com autorização: oito fontes no total, mapa dos 21 UCs e avaliador; descrição do PR atualizada | [PR #12](https://github.com/luislamy/ainnovation-hackathon-2026/pull/12); revisão cruzada pendente |
+| 27/10 11:39 | merge | simonedossantos-ship-it-patch-1 (PR #1) | 0e65181 | simonedossantos-ship-it | POR VERIFICAR | USE_CASES.md (18 UCs) | - |
+| 27/10 11:53 | merge | aless/coordenacao (PR #2) | 171dfad | AlessSaints | Claude | Índice por ponteiros, plano da equipa, skills/agentes partilhados em team/ | - |
+| 27/10 11:55 | merge | feat/rag-pipeline (PR #3) | 911e513 | luislamy | Claude Code | Pipeline RAG e contrato da KB | docs/revisoes/ (local) |
+| 27/10 11:57 | merge | aless/kb (PR #4) | db00e58 | AlessSaints | Claude | KB: burlas, orçamento, poupança e juros | - |
+| 27/10 12:10 | merge | aless/pii (PR #6) | c538815 | AlessSaints | Claude | mask_pii antes do LLM + testes | - |
+| 27/10 12:18 | merge | aless/calc (PR #9) | 9987723 | AlessSaints | Claude | Calculadoras com testes (UC-01, 02, 05, 06, 17) | - |
+| 27/10 12:25 | push | feat/api (PR #5, aberto) | 33ad419 | luislamy | Claude Opus 5.5 | Calculadoras ligadas por tool calling OpenAI; calcular() removido | POR VERIFICAR |
+| 27/10 12:23 | push | aless/kb2 (PR #10, aberto) | 1d33f03 | Claude | Claude | KB UC-03, 07, 08, 12, 17 (36 chunks) | - |
+| 27/10 12:15 | push | aless/handoff (PR #7, aberto) | e2c4a5f | Claude | Claude | HANDOFF e STATUS | - |
+| 27/10 12:35 | merge | aless/kb2 (PR #10) | 1416dd9 | luislamy | Claude | KB UC-03, 07, 08, 12, 17 em main (fundido pelo Lamy) | - |
+| 27/10 12:40 | push | aless/trace (PR #11) | - | Claude | Claude | Prompt de arranque para as IAs da equipa (team/PROMPT_ARRANQUE.md) + índice | - |
+| 27/10 12:50 | push | aless/calc-taxas (local) | - | Claude | Claude | Taxas 0–1 nas calculadoras, erro se >1 (pedido do Aless) | - |
