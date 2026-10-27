@@ -43,4 +43,4 @@ A pergunta «O que é infllação?» (com um `l` adicional) continuou sem result
 
 ## Próximo passo
 
-Publicar as três fontes e os testes após autorização, obter revisão cruzada e repetir «Sabes o que é inflação?» num chat novo com a API reiniciada. Para outros conceitos gerais, aplicar a mesma verificação de contexto por jornada antes de acrescentar documentos.
+As três fontes e os testes foram publicados com autorização do João no [PR #24](https://github.com/luislamy/ainnovation-hackathon-2026/pull/24). Falta revisão cruzada e integração. Após o merge, reiniciar a API e repetir «Sabes o que é inflação?» num chat novo. Para outros conceitos gerais, aplicar a mesma verificação de contexto por jornada antes de acrescentar documentos.

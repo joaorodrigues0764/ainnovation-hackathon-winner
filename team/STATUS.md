@@ -8,7 +8,7 @@
 | Aless | Claude | calculadoras (`backend/calculators.py`), depois KB dos UC-03/07/08/12/17 e texto dos guardrails | `aless/calc` (a criar) | Lamy: ligar `mask_pii` e `calcular()` na API; responder ao comentário do PR #6 |
 | Simone | POR VERIFICAR | casos de uso (`USE_CASES.md`, 18 UCs em `main`) | — | — |
 | Guilherme, João | POR VERIFICAR | KB (com Aless) | POR VERIFICAR | — |
-| João | Codex | Contexto de inflação preparado: três fontes oficiais em geral e teste de chat sem histórico; `docs/KB_INFLACAO_JOAO.md` | joao/kb; PRs #12 e #20 integrados | Publicação/revisão pendentes; BM25 não reconhece «infllação»; confirmar resposta com modelo real após reiniciar API |
+| João | Codex | Contexto de inflação publicado: três fontes oficiais em geral, testes e diagnóstico em `docs/KB_INFLACAO_JOAO.md` | joao/kb; PR #24; PRs #12 e #20 integrados | Revisão e merge pendentes; depois reiniciar API e testar chat novo; BM25 não reconhece «infllação» |
 
 ## Por decidir (grupo)
 1. OpenAI ou Ollama (hoje o código usa a API da OpenAI, gpt-4o-mini por omissão).
