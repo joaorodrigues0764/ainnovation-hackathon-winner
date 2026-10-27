@@ -19,7 +19,7 @@ npm install
 npm run dev        # http://localhost:3000
 ```
 
-Se a API estiver noutro endereço, copiar `.env.example` para `.env.local` e mudar `NEXT_PUBLIC_API_URL` (é lido no build; reiniciar o `npm run dev`). A API só aceita pedidos de `http://localhost:3000` por omissão (`CORS_ORIGINS` no `.env` da raiz).
+O `npm run build` de produção (Vercel) usa a API do Render por omissão (`.env.production`); o `npm run dev` e o Docker usam `http://localhost:8000`. Se a API estiver noutro endereço, copiar `.env.example` para `.env.local` e mudar `NEXT_PUBLIC_API_URL` (é lido no build; reiniciar o `npm run dev`). A API só aceita pedidos de `http://localhost:3000` por omissão (`CORS_ORIGINS` no `.env` da raiz).
 
 Verificar antes de um PR:
 
