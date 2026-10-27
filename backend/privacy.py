@@ -14,9 +14,9 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-# IBAN português: "PT50" + 21 dígitos (espaços/hífens tolerados). O teste do prefixo
+# IBAN português: "PT50" + até 21 dígitos (mínimo 8, para apanhar também IBANs incompletos ou fictícios) (espaços/hífens tolerados). O teste do prefixo
 # vem primeiro: se não houver PT50, não se gasta mais nada com o IBAN.
-_IBAN_PT = re.compile(r"\bPT\s?50(?:[\s-]?\d){21}\b", re.I)
+_IBAN_PT = re.compile(r"\bPT\s?50(?:[\s-]?\d){8,21}\b", re.I)
 _NIB = re.compile(r"(?<!\d)(?:\d[\s-]?){20}\d(?!\d)")  # 21 dígitos soltos (NIB)
 _EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
 _CARD = re.compile(r"(?<!\d)(?:\d[ -]?){12,18}\d(?!\d)")  # 13–19 dígitos, valida com Luhn
