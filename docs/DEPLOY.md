@@ -1,5 +1,7 @@
 # Deploy: API no Render, front no Vercel
 
+**API de produção:** https://caixa-explica-api.onrender.com ([`/health`](https://caixa-explica-api.onrender.com/health)). É o valor por omissão do build de produção do front (`frontend/.env.production`).
+
 ```
 browser ──► Vercel (frontend/, Next.js) ──fetch/SSE──► Render (backend/, Docker) ──► OpenAI
 ```
@@ -21,7 +23,7 @@ A chave da OpenAI fica **só no Render**. O Vercel só sabe o endereço público
    | `CORS_ORIGIN_REGEX` | vazio por agora; no passo 3, ex.: `https://caixa-explica-.*\.vercel\.app` |
 
    Já vêm definidos no `render.yaml`: `EMBEDDINGS=0` e `USE_EMBEDDINGS=0` (só BM25), `RATE_LIMIT_PER_MIN=10` por IP, `DAILY_LIMIT=500` perguntas por dia, `JUDGE=1`.
-4. **Apply**. O 1.º build demora uns minutos. No fim, abrir `https://caixa-explica-api.onrender.com/health` (o nome exato aparece no painel): deve devolver `{"status":"ok", ...}`.
+4. **Apply**. O 1.º build demora uns minutos. No fim, abrir https://caixa-explica-api.onrender.com/health: deve devolver `{"status":"ok", ...}`.
 
 **Embeddings no Render:** o plano free tem 512 MB de memória e o torch não cabe, por isso vai só com BM25 (a pesquisa por palavras passa 24/24 no `scripts/avaliar_kb.py`). Com um plano pago de 2 GB ou mais, pôr `EMBEDDINGS=1` e `USE_EMBEDDINGS=1` e fazer **Manual Deploy → Clear build cache & deploy**.
 
@@ -31,7 +33,7 @@ A chave da OpenAI fica **só no Render**. O Vercel só sabe o endereço público
 
 1. Em [vercel.com](https://vercel.com), entrar com o GitHub → **Add New → Project** → importar `luislamy/ainnovation-hackathon-2026`.
 2. **Root Directory: `frontend`** (botão *Edit* ao lado). O Vercel deteta Next.js; não mudar comandos de build.
-3. **Environment Variables**: `NEXT_PUBLIC_API_URL` = o URL do Render do passo 1 (sem `/` no fim). Aplicar a *Production* e *Preview*.
+3. **Environment Variables**: opcional. Sem nada, o build usa `frontend/.env.production` (`https://caixa-explica-api.onrender.com`). Para apontar para outra API, definir `NEXT_PUBLIC_API_URL` (sem `/` no fim), que tem prioridade sobre o ficheiro.
 4. **Deploy**. No fim fica um URL do tipo `https://caixa-explica.vercel.app`.
 
 `NEXT_PUBLIC_API_URL` é gravada no build: se o URL da API mudar, é preciso **Redeploy** no Vercel.
