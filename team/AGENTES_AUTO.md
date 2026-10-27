@@ -4,7 +4,7 @@ Objetivo: o humano só conversa; tu fazes o resto. Segue isto sem pedir autoriza
 
 ## 1. Ao começar (sempre, sem te pedirem)
 1. Hora e bloco: corre `date` (Lisboa). Prazo 27/10 15:00; congelar funcionalidades 14:15, código 14:40, entrega 14:55 (`team/skills/hackathon-sprint/SKILL.md`).
-2. Estado real: `git fetch` e `git status`; lê `team/INDEX.md`, `team/TRACE.md`, `team/PLANO_EQUIPA.md` e a lista de PRs abertos. Diz em 2 linhas o que mudou desde a última vez.
+2. Estado real: `git fetch` e `git status`; lê `team/INDEX.md`, `team/STATUS.md`, `team/TRACE.md`, a passagem mais recente em `team/handoff/` (se existir) e `team/PLANO_EQUIPA.md` e a lista de PRs abertos. Diz em 2 linhas o que mudou desde a última vez.
 3. Confirma a tua branch (`nome/coisa`). Nunca trabalhes em `main`.
 4. Se faltar a configuração: `sh team/instalar.sh`. Sem acesso ao shell: lê `team/skills/` como instruções.
 
@@ -17,7 +17,7 @@ Objetivo: o humano só conversa; tu fazes o resto. Segue isto sem pedir autoriza
 - Commits pequenos; última linha: `Ferramenta: <a tua ferramenta>`.
 
 ## 3. Quando acabas uma tarefa (automático)
-1. Commit na tua branch. 2. Acrescenta 1 linha ao fim de `team/TRACE.md` (ou `sh team/trace.sh push|merge "resumo"`) e atualiza a linha respetiva de `team/INDEX.md` se criaste ou moveste um ficheiro. 3. Responde ao humano: veredicto primeiro, máximo 5 linhas ou uma tabela, o que falta e o que precisas dele.
+1. Commit na tua branch. 2. Atualiza a tua linha em `team/STATUS.md`, acrescenta 1 linha ao fim de `team/TRACE.md` (ou `sh team/trace.sh push|merge "resumo"`) e atualiza a linha respetiva de `team/INDEX.md` se criaste ou moveste um ficheiro. 3. Responde ao humano: veredicto primeiro, máximo 5 linhas ou uma tabela, o que falta e o que precisas dele.
 
 ## 4. Pergunta sim/não ao humano antes de
 - fazer push ou abrir/fundir um PR;
@@ -31,8 +31,11 @@ Nunca: `--force`, rebase, apagar branches ou ficheiros de outros, resolver confl
 4. Gravidade alta sempre: segurança, dados de menores, contas feitas pelo LLM, segredos no código.
 5. Publica o relatório como comentário no PR só depois de o humano dizer sim.
 
-## 6. Como responder (todas as respostas)
+## 6. Tokens a acabar (≈90–95%)
+Faz a passagem sozinho, sem esperar: `team/HANDOFF.md` §3. O humano só abre a outra ferramenta e diz «continua».
+
+## 7. Como responder (todas as respostas)
 Veredicto primeiro. Máximo 5 linhas ou tabela; o detalhe vai para um ficheiro e a resposta aponta para ele. Português de Portugal, termos simples. Se a decisão é do grupo, escreve-a como pergunta fechada.
 
-## 7. Colar no ChatGPT / outras ferramentas (instruções do projeto)
+## 8. Colar no ChatGPT / outras ferramentas (instruções do projeto)
 «Lê `AGENTS.md` e `team/AGENTES_AUTO.md` do repositório do projeto e segue-os sempre, sem eu pedir. Respostas curtas, veredicto primeiro.»

@@ -4,6 +4,8 @@ Regra: cada coisa vive num só sítio; este ficheiro só aponta. Quem cria ou mo
 
 | O quê | Onde | Dono | Estado |
 |---|---|---|---|
+| Estado em tempo real (quem faz o quê agora) | `team/STATUS.md` | todos (a sua linha) | ativo |
+| Passagem entre agentes e canal direto | `team/HANDOFF.md`, `team/handoff/` | todos | v1 |
 | Comportamento automático dos agentes (qualquer ferramenta) | `team/AGENTES_AUTO.md` | grupo | v1 |
 | Como operamos (branches, commits, revisão, tokens) | `team/OPERACAO.md` | grupo | v1 |
 | Prompt de arranque para a IA de cada pessoa | `team/PROMPT_ARRANQUE.md` | grupo | v1 |
