@@ -9,6 +9,7 @@ import {
   type ChatRequest, type Health, type Journey, type JourneyId, type Profile,
 } from "@/lib/api";
 import { applyEvent, historyFrom, newExchange, type Exchange } from "@/lib/chat";
+import { suggestFollowUps } from "@/lib/followups";
 
 const FALLBACK_JOURNEYS: Journey[] = [
   { id: "credito", label: "Primeiro crédito" },
@@ -76,6 +77,7 @@ export default function Home() {
   const abortRef = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const busy = exchanges.at(-1)?.status === "streaming";
+  const followUps = suggestFollowUps(exchanges, journey);
 
   useEffect(() => {
     getHealth().then(setHealth, () => setHealth("down"));
@@ -213,6 +215,19 @@ export default function Home() {
             {exchanges.map((x) => (
               <ExchangeView key={x.id} x={x} mode={mode} onRetry={() => retry(x)} />
             ))}
+            {followUps.length > 0 && (
+              <section aria-label="Perguntas seguintes" className="flex flex-wrap gap-2">
+                {followUps.map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => send(q)}
+                    className="rounded-full border border-line bg-card px-3.5 py-1.5 text-left text-sm hover:border-accent hover:text-accent"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </section>
+            )}
           </div>
         )}
         <div ref={endRef} />
