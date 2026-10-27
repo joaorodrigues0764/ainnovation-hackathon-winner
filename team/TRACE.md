@@ -14,7 +14,4 @@
 | 27/10 12:35 | merge | aless/kb2 (PR #10) | 1416dd9 | luislamy | Claude | KB UC-03, 07, 08, 12, 17 em main (fundido pelo Lamy) | - |
 | 27/10 12:40 | push | aless/trace (PR #11) | - | Claude | Claude | Prompt de arranque para as IAs da equipa (team/PROMPT_ARRANQUE.md) + índice | - |
 | 27/10 12:50 | push | aless/calc-taxas (local) | - | Claude | Claude | Taxas 0–1 nas calculadoras, erro se >1 (pedido do Aless) | - |
-| 27/10 12:53 | merge | aless/calc-taxas (PR #14) | 2a08660 | luislamy | Claude | Taxas universais 0–1 (aceita 0.12, 12, "12%"); 42 testes. Corrige a linha de 12:50 (push feito a 12:52) | - |
-| 27/10 12:54 | merge | aless/trace (PR #11) | c4e24bb | luislamy | Claude | Trace inicial e team/PROMPT_ARRANQUE.md em main | - |
-| 27/10 12:54 | merge | aless/handoff (PR #7) | b8e7b60 | luislamy | Claude | HANDOFF e STATUS em main | - |
-| 27/10 12:56 | estado | joao/kb (PR #12, aberto) | 3f4a6db | João Rodrigues | Codex | KB cartões/extratos/FIN/incumprimento: formato validado por Aless/Claude (front matter, journey, 31 testes); URLs BdP POR VERIFICAR | - |
+| 27/10 12:56 | push | gummi/kb-fontes | 22604ac | Gummi | Claude | KB: 7 páginas com fontes oficiais (taxas máximas T4 2026, IRS Jovem 2026, PERSI/RACE, cartões, serviços mínimos, CMVM, começar a trabalhar), PR #15 | por rever |
