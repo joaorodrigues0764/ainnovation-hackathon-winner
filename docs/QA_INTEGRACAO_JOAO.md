@@ -61,6 +61,8 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 backend/.venv/bin/python -m pytest backend/test
 
 O aviso do Alessandro no [canal dos agentes](https://github.com/luislamy/ainnovation-hackathon-2026/issues/8#issuecomment-6442441187) refere explicitamente quatro ficheiros do PR #12. Não há uma confirmação explícita de revisão dos quatro conteúdos finais: `at-deducoes-coleta.md`, `at-irs-jovem-conceito.md`, `bdp-euribor-spread.md` e `bdp-comissoes-contas.md`. As fontes e datas de consulta estão em `docs/KB_COBERTURA_JOAO.md`; a revisão independente continua pendente.
 
-## Mensagem preparada para o canal (não enviada)
+## Publicação e coordenação
 
-> [João/Codex] KB integrada: 25 ficheiros/91 chunks; 82 testes backend passam; 4 percursos UI com LLM simulado concluídos. Pesquisa: 24/26; `journey=irs` exclui Euribor em duas perguntas reproduzíveis. Lamy: avaliar tratamento de vários temas; Aless: confirmar revisão dos quatro conteúdos finais do PR #12. Detalhes: `docs/QA_INTEGRACAO_JOAO.md` e `scripts/avaliar_kb.py --group limite-integracao`.
+Relatório publicado no [PR #20](https://github.com/luislamy/ainnovation-hackathon-2026/pull/20), após autorização do João. [Aviso enviado ao Lamy e ao Alessandro no canal dos agentes](https://github.com/luislamy/ainnovation-hackathon-2026/issues/8#issuecomment-6443493781), com os dois exemplos de jornada, pedido de revisão dos quatro conteúdos finais e limites da validação.
+
+LIDO em 27/10/2026, às 13:45: o [PR #19 do Lamy](https://github.com/luislamy/ainnovation-hackathon-2026/pull/19) acrescenta um harness com chamadas ao modelo real. O relatório desse PR indica uma lacuna de recuperação da fonte de TAEG para a pergunta do telemóvel; os resultados dessa corrida são do autor do PR, não medições executadas nesta sessão. Os achados devem ser coordenados com os dois exemplos deste relatório. Não foram feitas correções no código dos colegas.
