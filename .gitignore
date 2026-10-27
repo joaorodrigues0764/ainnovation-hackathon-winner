@@ -1,0 +1,21 @@
+# segredos
+.env
+.env.*
+!.env.example
+# referência privada da Saints (só local)
+_referencia-saints/
+# python / node
+__pycache__/
+*.pyc
+.venv/
+venv/
+node_modules/
+dist/
+build/
+.DS_Store
+.claude/settings.local.json
+# skills, contrato e planos de trabalho: só locais no SSD (decisão do Aless, 27/10)
+.claude/
+CLAUDE.md
+docs/PLANO_HACKATHON.md
+docs/AVALIACAO.md
