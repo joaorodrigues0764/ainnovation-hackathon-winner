@@ -255,3 +255,11 @@ def test_resposta_sem_citacoes_nao_inventa_fontes(client):
     client.use([("text", "A TAEG mede o custo total do crédito.")])  # sem [n]
     body = client.post("/chat", json={"question": "O que é a TAEG?", "journey": "credito"}).json()
     assert body["sources"] == [] and body["chunks"]  # houve fontes no prompt, mas nenhuma foi citada
+
+
+def test_citacoes_antigas_saem_do_historico(client):
+    hist = [{"role": "user", "content": "O que é a TAEG?"},
+            {"role": "assistant", "content": "A TAEG mede o custo total [4]. Inclui comissões [1][2]."}]
+    client.post("/chat", json={"question": "e a TAN?", "history": hist})
+    sent = client.llm.calls[-1]["messages"][2]["content"]
+    assert sent == "A TAEG mede o custo total. Inclui comissões."

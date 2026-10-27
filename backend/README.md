@@ -129,7 +129,26 @@ out = rag.answer(
 
 Formato em [`docs/KB_CONTRACT.md`](../docs/KB_CONTRACT.md). Basta largar `.md` novos em `kb/` e reiniciar o servidor.
 
-## Próximos passos (harness)
+## Harness das métricas do PRD
 
-- Conjunto de perguntas de teste com o ficheiro esperado → medir hit@5 do retrieval.
-- Variantes no quadro (query rewriting, HyDE): acrescentar como passo antes de `retrieve()` e comparar com o mesmo conjunto.
+`scripts/harness.py` corre os 20 casos de `docs/harness_cases.json` (UCs, `team/docs/AVALIACAO.md` e o guião da demo da Inês) pela API real, pelo mesmo `POST /chat/stream` que o front usa, e mede as metas do PRD:
+
+| Métrica | Como se mede | Alvo |
+| --- | --- | --- |
+| Fonte citada | a resposta tem um `[n]` que existe nas fontes devolvidas (citações "fantasma" não contam) | 100 % |
+| Números inventados | números da resposta que não vêm da pergunta, histórico, perfil, calculadoras ou chunks recuperados (aceita arredondamentos; ignora contagens até 10) | 0 |
+| Próximo passo | "Próximo passo"/"Próximos passos" no texto | ≥ 90 % |
+| Calculadoras | a calculadora esperada correu e deu os valores dos UCs (ex.: 47,07 €/mês no UC-05) | 100 % |
+| Guardrails | `scope` e aviso de PII como esperado | 100 % |
+| Latência | até ao 1.º texto (p50) e total (p95) | < 5 s |
+
+Gasta tokens (um pedido por caso, ~3 min no total). Com a API a correr:
+
+```powershell
+backend\.venv\Scripts\python scripts\harness.py --md docs\HARNESS.md
+backend\.venv\Scripts\python scripts\harness.py --only demo-2-60-meses   # follow-ups correm antes o caso de origem
+```
+
+Sai com código 1 se alguma meta falhar. A última corrida está em [`docs/HARNESS.md`](../docs/HARNESS.md). A lógica de medição tem testes próprios (`tests/test_harness.py`, sem LLM).
+
+Para comparar variantes do RAG (query rewriting, HyDE): mudar `retrieve()` e voltar a correr o mesmo conjunto; a pesquisa sozinha mede-se com `scripts/avaliar_kb.py`.
