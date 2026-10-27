@@ -15,3 +15,4 @@
 | 27/10 12:40 | push | aless/trace (PR #11) | - | Claude | Claude | Prompt de arranque para as IAs da equipa (team/PROMPT_ARRANQUE.md) + índice | - |
 | 27/10 12:50 | push | aless/calc-taxas (local) | - | Claude | Claude | Taxas 0–1 nas calculadoras, erro se >1 (pedido do Aless) | - |
 | 27/10 12:56 | push | gummi/kb-fontes | 22604ac | Gummi | Claude | KB: 7 páginas com fontes oficiais (taxas máximas T4 2026, IRS Jovem 2026, PERSI/RACE, cartões, serviços mínimos, CMVM, começar a trabalhar), PR #15 | por rever |
+| 27/10 13:50 | push | aless/guardrail-uc15 (local) | - | Claude | Claude | Guardrail determinista para valores atuais (UC-15): escalões, Euribor, taxas, salário mínimo | - |
