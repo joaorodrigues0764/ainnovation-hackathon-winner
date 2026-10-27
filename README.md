@@ -6,6 +6,21 @@ Agente conversacional em PT-PT que ajuda jovens (14–25) a fazer orçamento, po
 1. API (RAG + calculadoras) em `backend/`: setup e testes em [`backend/README.md`](backend/README.md) → `http://localhost:8000`.
 2. Front-end Next.js em `frontend/`: [`frontend/README.md`](frontend/README.md) → `http://localhost:3000` (modos Utilizador e Verboso).
 
+### Com Docker (API + front de uma vez)
+
+Precisa do Docker Desktop a correr e de um `.env` na raiz (copiar `.env.example` e pôr a `OPENAI_API_KEY`).
+
+```powershell
+docker compose up --build
+```
+
+- Front: http://localhost:3000 · API: http://localhost:8000/docs
+- O front só arranca quando a API responde ao `/health`.
+- Com embeddings (por omissão), o 1.º arranque descarrega o modelo (~470 MB) para o volume `hf-cache`; os seguintes já não.
+- Rede fraca ou pressa: `$env:EMBEDDINGS="0"; docker compose up --build` (só BM25, imagem muito mais pequena).
+- A chave **não** vai para a imagem: o `.env` está no `.dockerignore` e só entra no contentor ao arrancar (`env_file`).
+- Parar: `Ctrl+C` ou `docker compose down`.
+
 ## Equipa
 luislamy · Aless
 

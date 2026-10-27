@@ -249,3 +249,9 @@ def test_ajusta_parametros_recusados_pelo_modelo(client):
     assert client.post("/chat", json={"question": "O que é a TAEG?"}).json()["answer"] == ANSWER
     assert client.app.state.rag._llm_params == {"reasoning_effort": "none"}
     assert client.post("/chat", json={"question": "O que é a TAEG?"}).status_code == 200  # já não repete
+
+
+def test_resposta_sem_citacoes_nao_inventa_fontes(client):
+    client.use([("text", "A TAEG mede o custo total do crédito.")])  # sem [n]
+    body = client.post("/chat", json={"question": "O que é a TAEG?", "journey": "credito"}).json()
+    assert body["sources"] == [] and body["chunks"]  # houve fontes no prompt, mas nenhuma foi citada
