@@ -47,19 +47,23 @@ uvicorn api:app --reload --port 8000   # docs interativas em http://localhost:80
 Corpo dos dois `POST`:
 
 ```json
-{"question": "Vale a pena pedir crédito para o carro?",
+{"question": "e se for a 60 meses?",
  "journey": "credito",
- "profile": {"idade": 23, "rendimento_liquido": 1100, "objetivo": "carro de 8000 €"}}
+ "profile": {"idade": 23, "rendimento_liquido": 1100, "objetivo": "carro de 8000 €"},
+ "history": [{"role": "user", "content": "Vale a pena pedir crédito para o carro?"},
+             {"role": "assistant", "content": "…resposta anterior…"}]}
 ```
 
-`journey` e `profile` são opcionais. O perfil só aceita estes três campos.
+Só `question` é obrigatório. O perfil só aceita estes três campos.
+
+**Histórico:** o servidor não guarda conversa (o perfil e as mensagens ficam só na sessão do browser). O front envia em `history` as mensagens anteriores, da mais antiga para a mais recente, a cada pedido; seguem para o LLM as últimas 12. A última pergunta do utilizador também entra na pesquisa, para follow-ups curtos como "e a 60 meses?" encontrarem as fontes certas.
 
 Eventos de `/chat/stream`, por esta ordem:
 
 | Evento | `data` | Quando |
 | --- | --- | --- |
-| `warning` | `{text, pii}` | só se a pergunta tinha NIF/IBAN/cartão (já removidos) |
-| `sources` | `{sources, chunks}` | antes do texto, para o front mostrar as fontes cedo |
+| `warning` | `{text, pii}` | só se a pergunta tinha dados pessoais (já tapados) |
+| `sources` | `{sources, chunks, scope}` | antes do texto, para o front mostrar as fontes cedo; `scope` = guardrails ativados |
 | `delta` | `{text}` | cada pedaço da resposta |
 | `done` | `{answer, sources}` | fim; `sources` = só as citadas |
 | `error` | `{detail}` | falhou a meio; o stream termina |
@@ -72,9 +76,24 @@ Testar o stream no terminal:
 curl.exe -N -X POST http://localhost:8000/chat/stream -H "Content-Type: application/json" -d '{\"question\": \"O que e a TAEG?\", \"journey\": \"credito\"}'
 ```
 
-**Dados pessoais (UC-04):** NIF, IBAN e números de cartão são trocados por marcadores *antes* de a pergunta ir para a OpenAI, e a resposta começa com um aviso.
+**Dados pessoais (UC-04):** `privacy.py` tapa IBAN, NIB, cartões (com Luhn), NIF/telemóvel, emails e códigos/PIN na pergunta, no histórico e no perfil, *antes* de irem para a OpenAI. Se a pergunta atual tinha algum, a resposta começa com o evento `warning`.
+
+**Guardrails de âmbito (Bloco 3):** `guardrails.py` deteta, sem LLM, três casos e acrescenta ao prompt uma instrução e a entidade oficial para onde reencaminhar (citável como fonte):
+
+| `scope` | Exemplo | Reencaminha para |
+| --- | --- | --- |
+| `investimento` | "melhores ações?", "devo comprar Bitcoin?" | CMVM |
+| `acao_externa` | "podes renegociar o crédito / tratar do meu IRS?" | Banco de Portugal, DECO, Portal das Finanças |
+| `produto` | "qual o melhor banco?", "que cartão me recomendas?" | comparadores do Portal do Cliente Bancário |
 
 **Calculadoras (RF2):** ligam-se em `calcular()` no `api.py`. O cliente não pode enviar números; só a API os passa ao LLM.
+
+Testes (não gastam tokens, o LLM é falso):
+
+```powershell
+pip install pytest
+python -m pytest -q tests
+```
 
 Variáveis opcionais no `.env`: `KB_DIR`, `USE_EMBEDDINGS=0` (só BM25, arranque rápido), `CORS_ORIGINS` (por omissão `http://localhost:3000`, separar várias por vírgulas).
 

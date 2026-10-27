@@ -11,19 +11,21 @@ Endpoints:
     POST /chat/stream   a mesma resposta em Server-Sent Events
 
 Eventos de /chat/stream (cada um com `data:` em JSON):
-    warning  {text, pii}            só se a pergunta tinha dados pessoais (foram removidos)
-    sources  {sources, chunks}      fontes recuperadas, antes do texto
-    delta    {text}                 pedaço da resposta
-    done     {answer, sources}      resposta final + só as fontes citadas
-    error    {detail}               falhou a meio; o stream termina
+    warning  {text, pii}              só se a mensagem tinha dados pessoais (foram mascarados)
+    sources  {sources, chunks, scope} fontes recuperadas, antes do texto; scope = guardrails ativados
+    delta    {text}                   pedaço da resposta
+    done     {answer, sources}        resposta final + só as fontes citadas
+    error    {detail}                 falhou a meio; o stream termina
+
+O servidor não guarda conversa: o front envia o histórico em `history` a cada pedido.
 """
 from __future__ import annotations
 
 import json
 import os
-import re
 import sys
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterator, Literal
 
@@ -32,11 +34,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
+from guardrails import check_scope
+from privacy import mask_pii
 from rag import JOURNEYS, LLM_MODEL, RAG
 
 KB_DIR = os.getenv("KB_DIR", str(Path(__file__).resolve().parent / "kb"))
 USE_EMBEDDINGS = os.getenv("USE_EMBEDDINGS", "1") != "0"
 CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")]
+MAX_HISTORY = 12  # mensagens (≈ 6 trocas) que seguem para o LLM
 
 JOURNEY_LABELS = {
     "credito": "Primeiro crédito",
@@ -47,31 +52,10 @@ JOURNEY_LABELS = {
     "geral": "Geral",
 }
 
-
-# ---------------------------------------------------------------- dados pessoais (UC-04)
-
-# Ordem importa: o IBAN sai primeiro para os dígitos dele não contarem como cartão/NIF.
-PII_PATTERNS = [
-    ("IBAN", re.compile(r"\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){3,7}(?: ?[A-Z0-9]{1,3})?\b", re.I)),
-    ("número de cartão", re.compile(r"(?<!\d)(?:\d[ -]?){12,18}\d(?!\d)")),
-    ("NIF ou telefone", re.compile(r"(?<!\d)\d{3} ?\d{3} ?\d{3}(?!\d)")),
-]
-
-
-def redact_pii(text: str) -> tuple[str, list[str]]:
-    """Troca NIF/IBAN/cartão por marcadores. O texto original nunca chega ao LLM."""
-    found = []
-    for label, pattern in PII_PATTERNS:
-        text, n = pattern.subn(f"[{label} removido]", text)
-        if n:
-            found.append(label)
-    return text, found
-
-
-def pii_warning(found: list[str]) -> str:
-    return (f"Atenção: a tua mensagem tinha dados pessoais ({', '.join(found)}). "
-            "Não partilhes NIF, IBAN, números de cartão ou palavras-passe aqui. "
-            "Removi-os antes de responder e não os guardo.")
+PII_LABELS = {
+    "IBAN": "IBAN", "NIB": "NIB", "CARTAO": "número de cartão", "CODIGO": "código ou PIN",
+    "EMAIL": "email", "NIF_OU_TELEMOVEL": "NIF ou telemóvel",
+}
 
 
 # ---------------------------------------------------------------- modelos
@@ -84,10 +68,17 @@ class Profile(BaseModel):
     objetivo: str | None = Field(None, max_length=200)
 
 
+class Turn(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=4000)
+
+
 class ChatRequest(BaseModel):
     question: str = Field(min_length=1, max_length=1000)
     journey: Literal[JOURNEYS] | None = None
     profile: Profile | None = None
+    history: list[Turn] = Field(default_factory=list, max_length=40,
+                                description="mensagens anteriores, da mais antiga para a mais recente")
 
 
 class Source(BaseModel):
@@ -101,16 +92,59 @@ class ChatResponse(BaseModel):
     answer: str
     sources: list[Source]
     chunks: list[dict]
+    scope: list[str] = []
     warning: str | None = None
 
 
-def prepare(req: ChatRequest) -> tuple[str, dict | None, list[str]]:
-    question, found = redact_pii(req.question)
-    profile = req.profile.model_dump(exclude_none=True) if req.profile else None
-    if profile and "objetivo" in profile:
-        profile["objetivo"], found_obj = redact_pii(profile["objetivo"])
-        found += [f for f in found_obj if f not in found]
-    return question, profile or None, found
+# ---------------------------------------------------------------- preparação do pedido
+
+@dataclass
+class Prepared:
+    question: str
+    profile: dict | None
+    history: list[dict]
+    pii: list[str]
+    scope: list[str]
+    referrals: list[dict]
+    instructions: list[str]
+
+    @property
+    def warning(self) -> str | None:
+        if not self.pii:
+            return None
+        return (f"Atenção: a tua mensagem tinha dados pessoais ({', '.join(self.pii)}). "
+                "Não partilhes NIF, IBAN, números de cartão, códigos ou palavras-passe aqui. "
+                "Tapei-os antes de responder e não os guardo.")
+
+    def rag_kwargs(self, req: ChatRequest) -> dict:
+        return {"journey": req.journey, "profile": self.profile, "history": self.history,
+                "tool_results": calcular(req, self.profile), "referrals": self.referrals,
+                "instructions": self.instructions}
+
+
+def prepare(req: ChatRequest) -> Prepared:
+    """Mascara dados pessoais (UC-04) em tudo o que vai para o LLM e aplica os guardrails."""
+    found: dict[str, int] = {}
+
+    def mask(text: str) -> str:
+        r = mask_pii(text)
+        for k, v in r.found.items():
+            found[k] = found.get(k, 0) + v
+        return r.text
+
+    question = mask(req.question)
+    profile = req.profile.model_dump(exclude_none=True) if req.profile else {}
+    if "objetivo" in profile:
+        profile["objetivo"] = mask(profile["objetivo"])
+    # só a pergunta atual conta para o aviso; o histórico já foi avisado na sua vez
+    pii = [PII_LABELS.get(k, k) for k in found]
+    history = [{"role": t.role, "content": mask_pii(t.content).text}
+               for t in req.history[-MAX_HISTORY:]]
+
+    hits = check_scope(question)
+    referrals = list({r["url"]: r for h in hits for r in h.referrals}.values())
+    return Prepared(question, profile or None, history, pii, [h.kind for h in hits],
+                    referrals, [h.instruction for h in hits])
 
 
 def calcular(req: ChatRequest, profile: dict | None) -> dict | None:
@@ -153,16 +187,15 @@ def journeys():
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(req: ChatRequest, request: Request):
-    question, profile, found = prepare(req)
+    p = prepare(req)
     try:
-        out = _rag(request).answer(question, journey=req.journey, profile=profile,
-                                   tool_results=calcular(req, profile))
+        out = _rag(request).answer(p.question, **p.rag_kwargs(req))
     except RuntimeError as e:  # configuração (ex.: falta a chave)
         raise HTTPException(503, str(e))
     except Exception as e:
         print(f"[api] erro no LLM: {e!r}", file=sys.stderr)
         raise HTTPException(502, "O modelo não respondeu. Tenta outra vez.")
-    return {**out, "warning": pii_warning(found) if found else None}
+    return {**out, "scope": p.scope, "warning": p.warning}
 
 
 def _sse(event: str, data: dict) -> str:
@@ -171,16 +204,18 @@ def _sse(event: str, data: dict) -> str:
 
 @app.post("/chat/stream")
 def chat_stream(req: ChatRequest, request: Request):
-    question, profile, found = prepare(req)
+    p = prepare(req)
     rag = _rag(request)
 
     def events() -> Iterator[str]:
-        if found:
-            yield _sse("warning", {"text": pii_warning(found), "pii": found})
+        if p.warning:
+            yield _sse("warning", {"text": p.warning, "pii": p.pii})
         try:
-            for ev in rag.stream_answer(question, journey=req.journey, profile=profile,
-                                        tool_results=calcular(req, profile)):
-                yield _sse(ev.pop("type"), ev)
+            for ev in rag.stream_answer(p.question, **p.rag_kwargs(req)):
+                kind = ev.pop("type")
+                if kind == "sources":
+                    ev["scope"] = p.scope
+                yield _sse(kind, ev)
         except RuntimeError as e:
             yield _sse("error", {"detail": str(e)})
         except Exception as e:

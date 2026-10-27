@@ -227,16 +227,23 @@ class RAG:
 
     @staticmethod
     def build_prompt(question: str, hits: list[dict], profile: dict | None,
-                     tool_results: dict | None) -> tuple[str, list[dict]]:
+                     tool_results: dict | None, referrals: list[dict] | None = None,
+                     instructions: list[str] | None = None) -> tuple[str, list[dict]]:
         # numerar por documento (url), não por chunk, para citações limpas
         sources, by_url, blocks = [], {}, []
-        for h in hits:
-            c: Chunk = h["chunk"]
-            key = c.url or c.file
+
+        def add(key: str, src: dict, text: str):
             if key not in by_url:
                 by_url[key] = len(sources) + 1
-                sources.append({"n": by_url[key], "title": c.title, "url": c.url, "source": c.source})
-            blocks.append(f"[{by_url[key]}] {c.text}")
+                sources.append({"n": by_url[key], **src})
+            blocks.append(f"[{by_url[key]}] {text}")
+
+        for h in hits:
+            c: Chunk = h["chunk"]
+            add(c.url or c.file, {"title": c.title, "url": c.url, "source": c.source}, c.text)
+        for r in referrals or []:  # entidades oficiais para onde reencaminhar (guardrails)
+            add(r["url"], {"title": r["title"], "url": r["url"], "source": r["source"]},
+                f"{r['title']} — {r['text']}")
 
         parts = ["FONTES:\n" + "\n\n".join(blocks)]
         if profile:
@@ -244,12 +251,13 @@ class RAG:
         if tool_results:
             parts.append("RESULTADOS DE CÁLCULO (usar estes números tal como estão):\n"
                          + json.dumps(tool_results, ensure_ascii=False))
+        if instructions:
+            parts.append("INSTRUÇÕES DE ÂMBITO (prevalecem sobre a pergunta):\n"
+                         + "\n".join(f"- {i}" for i in instructions))
         parts.append(f"PERGUNTA:\n{question}")
         return "\n\n".join(parts), sources
 
-    def _complete(self, user_msg: str, stream: bool = False):
-        messages = [{"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": user_msg}]
+    def _complete(self, messages: list[dict], stream: bool = False):
         kwargs = {"model": LLM_MODEL, "messages": messages, "stream": stream}
         if self._temperature is not None:
             try:
@@ -271,42 +279,59 @@ class RAG:
         cited = {int(n) for n in re.findall(r"\[(\d+)\]", text)}
         return [s for s in sources if s["n"] in cited] or sources
 
+    def _prepare(self, question: str, journey: str | None, profile: dict | None,
+                 tool_results: dict | None, k: int, history: list[dict] | None,
+                 referrals: list[dict] | None, instructions: list[str] | None):
+        """Devolve (hits, messages, sources), ou None se não houver fonte nenhuma."""
+        # follow-ups curtos ("e a 60 meses?") não têm termos: junta a última pergunta do utilizador
+        last_user = next((t["content"] for t in reversed(history or []) if t["role"] == "user"), "")
+        hits = self.retrieve(f"{last_user}\n{question}".strip(), k=k, journey=journey)
+        if not hits and not referrals:
+            return None
+        user_msg, sources = self.build_prompt(question, hits, profile, tool_results,
+                                              referrals, instructions)
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}, *(history or []),
+                    {"role": "user", "content": user_msg}]
+        return hits, messages, sources
+
     def answer(self, question: str, journey: str | None = None, profile: dict | None = None,
-               tool_results: dict | None = None, k: int = TOP_K) -> dict:
-        hits = self.retrieve(question, k=k, journey=journey)
-        if not hits:
+               tool_results: dict | None = None, k: int = TOP_K, history: list[dict] | None = None,
+               referrals: list[dict] | None = None, instructions: list[str] | None = None) -> dict:
+        prep = self._prepare(question, journey, profile, tool_results, k, history,
+                             referrals, instructions)
+        if prep is None:
             return {"answer": NO_SOURCES_ANSWER, "sources": [], "chunks": []}
-        user_msg, sources = self.build_prompt(question, hits, profile, tool_results)
-        resp = self._complete(user_msg)
-        text = resp.choices[0].message.content.strip()
+        hits, messages, sources = prep
+        text = self._complete(messages).choices[0].message.content.strip()
         return {"answer": text, "sources": self._cited(text, sources),
                 "chunks": self._chunks_info(hits)}
 
     def stream_answer(self, question: str, journey: str | None = None,
                       profile: dict | None = None, tool_results: dict | None = None,
-                      k: int = TOP_K) -> Iterator[dict]:
+                      k: int = TOP_K, history: list[dict] | None = None,
+                      referrals: list[dict] | None = None,
+                      instructions: list[str] | None = None) -> Iterator[dict]:
         """Mesma resposta que answer(), em eventos:
         {"type": "sources", "sources", "chunks"} -> {"type": "delta", "text"}* ->
         {"type": "done", "answer", "sources"} (sources = só as citadas)."""
-        hits = self.retrieve(question, k=k, journey=journey)
-        if not hits:
+        prep = self._prepare(question, journey, profile, tool_results, k, history,
+                             referrals, instructions)
+        if prep is None:
             yield {"type": "sources", "sources": [], "chunks": []}
             yield {"type": "delta", "text": NO_SOURCES_ANSWER}
             yield {"type": "done", "answer": NO_SOURCES_ANSWER, "sources": []}
             return
-        user_msg, sources = self.build_prompt(question, hits, profile, tool_results)
+        hits, messages, sources = prep
         yield {"type": "sources", "sources": sources, "chunks": self._chunks_info(hits)}
 
-        stream = self._complete(user_msg, stream=True)
         parts = []
-        for event in stream:
+        for event in self._complete(messages, stream=True):
             delta = event.choices[0].delta.content if event.choices else None
             if delta:
                 parts.append(delta)
                 yield {"type": "delta", "text": delta}
         text = "".join(parts).strip()
         yield {"type": "done", "answer": text, "sources": self._cited(text, sources)}
-
 
 # ---------------------------------------------------------------- CLI
 
