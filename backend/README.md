@@ -11,9 +11,10 @@ cd backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-$env:OPENAI_API_KEY = "sk-..."
-$env:OPENAI_MODEL = "gpt-4o-mini"   # ou o modelo que a equipa escolher
+Copy-Item ..\.env.example ..\.env   # depois abrir ..\.env e colar a OPENAI_API_KEY
 ```
+
+O `rag.py` lê o `.env` da raiz do repo (que está no `.gitignore`). Uma variável já definida no terminal (`$env:OPENAI_API_KEY`) tem prioridade sobre o `.env`.
 
 ## Testar
 

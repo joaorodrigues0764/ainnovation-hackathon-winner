@@ -26,7 +26,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
+from dotenv import load_dotenv
 from rank_bm25 import BM25Okapi
+
+# .env na raiz do repo (fora do git); variáveis já definidas no ambiente têm prioridade
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 EMBED_MODEL = os.getenv("EMBED_MODEL", "intfloat/multilingual-e5-small")
 LLM_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")  # mudar para o modelo que a equipa usar
@@ -212,6 +216,8 @@ class RAG:
     def _client(self):
         if self._llm is None:
             from openai import OpenAI
+            if not os.getenv("OPENAI_API_KEY"):
+                raise RuntimeError("Falta OPENAI_API_KEY: copiar .env.example para .env na raiz do repo e preencher")
             self._llm = OpenAI()  # lê OPENAI_API_KEY do ambiente
         return self._llm
 
