@@ -80,4 +80,4 @@ O primeiro comando termina com código 0 nesta versão. Os restantes terminam co
 2. Backend/RAG: decidir como tratar perguntas com várias jornadas e verificar ausência de cotações atuais na resposta.
 3. Donos dos conteúdos antigos: rever URL de TAEG e contextualização temporal dos números de IRS Jovem. Equipa de casos de uso: avaliar os pontos de comportamento da tabela acima com o agente real.
 
-Publicação desta segunda entrega ainda não autorizada. O PR #12 publicado contém a primeira entrega; os novos conteúdos, o avaliador e este relatório estão apenas na branch local até nova confirmação.
+Segunda entrega publicada em 27/10/2026, após autorização do João, no [PR #12](https://github.com/luislamy/ainnovation-hackathon-2026/pull/12). O PR inclui os oito conteúdos do João, o avaliador e este relatório. Revisão cruzada e integração em `main` continuam pendentes.
