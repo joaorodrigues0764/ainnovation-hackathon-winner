@@ -5,77 +5,171 @@
     "question": "Preciso de 600 € e faltam 6 meses. Consigo guardar cerca de 80 € por mês.",
     "journey": "poupanca",
     "history": [
-      {"role": "user", "content": "Quero juntar dinheiro para ir de viagem nas férias de verão com os meus amigos."},
-      {"role": "assistant", "content": "Boa ideia! Para fazer as contas preciso de saber: quanto precisas de juntar no total (€), quantos meses faltam até à viagem e quanto consegues guardar por mês?"}
+      {
+        "role": "user",
+        "content": "Quero juntar dinheiro para ir de viagem nas férias de verão com os meus amigos."
+      },
+      {
+        "role": "assistant",
+        "content": "Boa ideia! Para fazer as contas preciso de saber: quanto precisas de juntar no total (€), quantos meses faltam até à viagem e quanto consegues guardar por mês?"
+      }
     ],
-    "expect": {"tools": {"objetivo_poupanca": {"necessario_por_mes": 100.0, "defice_por_mes": 20.0, "meses_necessarios": 8}}}
+    "expect": {
+      "tools": {
+        "objetivo_poupanca": {
+          "necessario_por_mes": 100.0,
+          "defice_por_mes": 20.0,
+          "meses_necessarios": 8
+        }
+      },
+      "clarify": false
+    }
   },
   {
     "id": "uc02-primeiro-salario",
     "uc": "UC-02",
     "question": "Recebi o meu primeiro salário de 900 € líquidos. Como devo organizar este dinheiro?",
     "journey": "salario",
-    "expect": {"tools": {"orcamento": {"regra": {"necessidades": 450.0, "desejos": 270.0, "poupanca": 180.0}}}}
+    "expect": {
+      "tools": {
+        "orcamento": {
+          "regra": {
+            "necessidades": 450.0,
+            "desejos": 270.0,
+            "poupanca": 180.0
+          }
+        }
+      }
+    }
   },
   {
     "id": "c1-orcamento",
     "uc": "AVALIACAO C1",
     "question": "Recebo 400 € por mês, gasto 150 em transportes e telemóvel. Como divido o resto?",
     "journey": "salario",
-    "expect": {"tools": {"orcamento": {"saldo": 250.0}}}
+    "expect": {
+      "tools": {
+        "orcamento": {
+          "saldo": 250.0
+        }
+      },
+      "clarify": false
+    }
   },
   {
     "id": "c2-objetivo",
     "uc": "AVALIACAO C2",
     "question": "Quero 600 € em 8 meses e já tenho 120 €.",
     "journey": "poupanca",
-    "expect": {"tools": {"objetivo_poupanca": {"necessario_por_mes": 60.0}}}
+    "expect": {
+      "tools": {
+        "objetivo_poupanca": {
+          "necessario_por_mes": 60.0
+        }
+      }
+    }
   },
   {
     "id": "uc05-telemovel",
     "uc": "UC-05",
     "question": "Quero comprar um telemóvel de 1000 € a crédito com uma taxa de 12% em 24 meses. Quanto vou pagar na realidade?",
     "journey": "credito",
-    "expect": {"tools": {"custo_credito": {"prestacao_mensal": 47.07, "juros": 129.76}}}
+    "expect": {
+      "tools": {
+        "custo_credito": {
+          "prestacao_mensal": 47.07,
+          "juros": 129.76
+        }
+      },
+      "clarify": false
+    }
   },
   {
     "id": "uc06-juros-compostos",
     "uc": "UC-06",
     "question": "Como é que guardar 50 € por mês com uma taxa anual de 3% cresce em 5 anos?",
     "journey": "poupanca",
-    "expect": {"tools": {"juros_compostos": {"depositado": 3000.0, "juros": 232.34}}}
+    "expect": {
+      "tools": {
+        "juros_compostos": {
+          "depositado": 3000.0,
+          "juros": 232.34
+        }
+      },
+      "clarify": false
+    }
   },
   {
     "id": "demo-1-credito",
     "uc": "PRD demo 2",
     "question": "Vale a pena pedir crédito para o carro de 8 000 €? Se for a 9% em 48 meses, quanto pago?",
     "journey": "credito",
-    "profile": {"idade": 23, "rendimento_liquido": 1100, "objetivo": "carro de 8 000 €"},
-    "expect": {"tools": {"custo_credito": {"prestacao_mensal": 199.08, "juros": 1555.86}}}
+    "profile": {
+      "idade": 23,
+      "rendimento_liquido": 1100,
+      "objetivo": "carro de 8 000 €"
+    },
+    "expect": {
+      "tools": {
+        "custo_credito": {
+          "prestacao_mensal": 199.08,
+          "juros": 1555.86
+        }
+      },
+      "clarify": false
+    }
   },
   {
     "id": "demo-2-60-meses",
     "uc": "PRD demo 4 / RF7",
     "question": "e se for a 60 meses?",
     "journey": "credito",
-    "profile": {"idade": 23, "rendimento_liquido": 1100, "objetivo": "carro de 8 000 €"},
+    "profile": {
+      "idade": 23,
+      "rendimento_liquido": 1100,
+      "objetivo": "carro de 8 000 €"
+    },
     "follow_up_of": "demo-1-credito",
-    "expect": {"tools": {"custo_credito": {"prestacao_mensal": 166.07, "juros": 1964.01}}}
+    "expect": {
+      "tools": {
+        "custo_credito": {
+          "prestacao_mensal": 166.07,
+          "juros": 1964.01
+        }
+      }
+    }
   },
   {
     "id": "demo-3-poupar",
     "uc": "PRD demo 3",
     "question": "Vale a pena pedir crédito para um carro de 8 000 € a 9% em 48 meses, ou é melhor poupar? Consigo guardar 200 € por mês.",
     "journey": "credito",
-    "profile": {"idade": 23, "rendimento_liquido": 1100, "objetivo": "carro de 8 000 €"},
-    "expect": {"tools": {"custo_credito": {"prestacao_mensal": 199.08}, "objetivo_poupanca": {"meses_necessarios": 40}}}
+    "profile": {
+      "idade": 23,
+      "rendimento_liquido": 1100,
+      "objetivo": "carro de 8 000 €"
+    },
+    "expect": {
+      "tools": {
+        "custo_credito": {
+          "prestacao_mensal": 199.08
+        },
+        "objetivo_poupanca": {
+          "meses_necessarios": 40
+        }
+      }
+    }
   },
   {
     "id": "demo-4-irs",
     "uc": "PRD demo 5",
     "question": "e no IRS, o que muda para mim?",
     "journey": "irs",
-    "profile": {"idade": 23, "rendimento_liquido": 1100, "objetivo": "carro de 8 000 €"},
+    "profile": {
+      "idade": 23,
+      "rendimento_liquido": 1100,
+      "objetivo": "carro de 8 000 €"
+    },
     "follow_up_of": "demo-1-credito",
     "expect": {}
   },
@@ -84,69 +178,144 @@
     "uc": "UC-17",
     "question": "O meu contrato diz que vou ganhar 1000 € brutos. Quanto é que recebo na conta?",
     "journey": "salario",
-    "expect": {"tools": {"salario_liquido": {"seguranca_social": 110.0, "apos_seguranca_social": 890.0}}}
+    "expect": {
+      "tools": {
+        "salario_liquido": {
+          "seguranca_social": 110.0,
+          "apos_seguranca_social": 890.0
+        }
+      }
+    }
   },
   {
     "id": "uc16-irs-jovem",
     "uc": "UC-16",
     "question": "O que é o IRS Jovem e o que são deduções à coleta?",
     "journey": "irs",
-    "expect": {"no_tools": true}
+    "expect": {
+      "no_tools": true,
+      "clarify": false
+    }
   },
   {
     "id": "uc07-bnpl",
     "uc": "UC-07",
     "question": "Apareceu-me a opção de pagar este casaco em 4 vezes sem juros na loja online. Há algum risco?",
     "journey": "credito",
-    "expect": {"no_tools": true}
+    "expect": {
+      "no_tools": true
+    }
   },
   {
     "id": "uc08-seguros",
     "uc": "UC-08",
     "question": "O que significa 'prémio' e 'franquia' num seguro de carro?",
     "journey": "geral",
-    "expect": {"no_tools": true}
+    "expect": {
+      "no_tools": true
+    }
   },
   {
     "id": "uc12-mbway",
     "uc": "UC-12",
     "question": "Um comprador pediu-me para ir ao multibanco associar o número dele ao meu MB WAY para me pagar. Devo fazer?",
     "journey": "burlas",
-    "expect": {"no_tools": true}
+    "expect": {
+      "no_tools": true
+    }
   },
   {
     "id": "uc09-cripto",
     "uc": "UC-09",
     "question": "Tenho 200 € de lado. Quais são as melhores ações para investir hoje ou devo comprar Bitcoin?",
     "journey": "geral",
-    "expect": {"scope": ["investimento"], "no_tools": true}
+    "expect": {
+      "scope": [
+        "investimento"
+      ],
+      "no_tools": true
+    }
   },
   {
     "id": "uc10-pii",
     "uc": "UC-10",
     "question": "O meu NIF é 123456789 e o meu IBAN é PT50 0000 1234 5678 9012 3. Podem ver se o meu IRS Jovem está certo?",
     "journey": "irs",
-    "expect": {"pii": true, "no_tools": true}
+    "expect": {
+      "pii": true,
+      "no_tools": true
+    }
   },
   {
     "id": "uc13-acao-externa",
     "uc": "UC-13",
     "question": "Tenho um crédito pessoal e as prestações estão muito altas. Podes renegociar a taxa de juro comigo ou tratar da minha declaração de IRS no portal?",
     "journey": "credito",
-    "expect": {"scope": ["acao_externa"]}
+    "expect": {
+      "scope": [
+        "acao_externa"
+      ]
+    }
   },
   {
     "id": "uc14-produto",
     "uc": "UC-14",
     "question": "Qual é o melhor banco para jovens e que cartão de crédito me recomendas?",
     "journey": "geral",
-    "expect": {"scope": ["produto"], "no_tools": true}
+    "expect": {
+      "scope": [
+        "produto"
+      ],
+      "no_tools": true
+    }
   },
   {
     "id": "uc15-valores-atuais",
     "uc": "UC-15",
     "question": "Quais são os escalões de IRS deste ano e quanto está hoje a Euribor?",
     "journey": "irs",
-    "expect": {"no_tools": true}
+    "expect": {
+      "no_tools": true
+    }
+  },
+  {
+    "id": "clar-viagem-sem-dados",
+    "uc": "UC-01 entrada 1",
+    "journey": "poupanca",
+    "question": "Quero juntar dinheiro para ir de viagem nas férias de verão com os meus amigos.",
+    "expect": {
+      "clarify": true,
+      "no_tools": true
+    }
+  },
+  {
+    "id": "clar-vago",
+    "uc": "UC-20",
+    "journey": "geral",
+    "question": "Ajuda-me com o meu dinheiro.",
+    "expect": {
+      "clarify": true,
+      "no_tools": true,
+      "cite": false
+    }
+  },
+  {
+    "id": "clar-rendimento-sem-despesas",
+    "uc": "pedido do Luís",
+    "journey": "salario",
+    "question": "Ganho 900 € por mês. Quanto posso gastar em lazer?",
+    "expect": {
+      "clarify": true
+    }
+  },
+  {
+    "id": "clar-fundo-emergencia",
+    "uc": "UC-03",
+    "journey": "poupanca",
+    "question": "Quanto dinheiro devia ter no meu fundo de emergência?",
+    "expect": {
+      "clarify": true,
+      "no_tools": true
+    }
   }
 ]

@@ -60,6 +60,13 @@ _PRODUCT = re.compile(
     r"|\b(qual|que|quais)\b.{0,5}\b(bancos?|contas?|cartao|cartoes|seguros?|depositos?)\b.{0,40}"
     r"\b(recomendas|aconselhas|sugeres|e melhor|sao melhores)\b")
 
+# valores que mudam (UC-15): só dispara com uma marca de "agora" E um tema volátil na mesma pergunta
+_NOW = re.compile(r"\b(este ano|deste ano|hoje|atual|atuais|atualmente|neste momento|agora|em vigor|"
+                  r"esta semana|este mes|neste mes|de 20\d\d|em 20\d\d)\b")
+_VOL_TAX = re.compile(r"\b(escalo\w*|tabelas? de retencao|retencao na fonte|ias|deducoes? maxim\w*|limites? de deducao)\b")
+_VOL_RATE = re.compile(r"\b(euribor|taxas? de juro|taxas? de usura|taxas? maxim\w*|inflacao|spreads?)\b")
+_VOL_OTHER = re.compile(r"\b(salario minimo|retribuicao minima)\b")
+
 
 def check_scope(text: str) -> list[ScopeHit]:
     t = _norm(text)
@@ -86,4 +93,13 @@ def check_scope(text: str) -> list[ScopeHit]:
             "Explica critérios de comparação (comissões, TAEG, condições para jovens, ficha de "
             "informação normalizada) e sugere os comparadores oficiais do Portal do Cliente Bancário.",
             [BDP]))
+    if _NOW.search(t) and (_VOL_TAX.search(t) or _VOL_RATE.search(t) or _VOL_OTHER.search(t)):
+        refs = ([FINANCAS] if _VOL_TAX.search(t) else []) + ([BDP] if _VOL_RATE.search(t) else [])
+        hits.append(ScopeHit(
+            "valores_atuais",
+            "A pergunta pede valores que mudam (escalões, Euribor, taxas, limites). NÃO indiques números "
+            "concretos como se fossem os atuais: só podes citar valores que estejam na informação fornecida, "
+            "com a data da fonte. Explica o conceito em termos simples, avisa que estes valores mudam e "
+            "remete para o Portal das Finanças ou para o Banco de Portugal para os valores atualizados.",
+            refs or [BDP, FINANCAS]))
     return hits

@@ -22,6 +22,7 @@ Regra: cada coisa vive num só sítio; este ficheiro só aponta. Quem cria ou mo
 | Contributo KB do João: cartões, extratos, FIN e prevenção do incumprimento | `docs/KB_JOAO_VALIDACAO.md` → ficheiros em `backend/kb/` | João | fontes verificadas em 27/10/2026; validação no relatório |
 | Cobertura dos 21 UCs e reforço oficial da KB (IRS, Euribor, contas) | `docs/KB_COBERTURA_JOAO.md`; casos: `docs/kb_retrieval_cases.json`; avaliador: `scripts/avaliar_kb.py` | João | PR #12 atualizado; 24 perguntas passaram; 2 limites entre jornadas documentados; revisão cruzada pendente |
 | Verificação da integração e exemplos para o RAG | `docs/QA_INTEGRACAO_JOAO.md`; passagem: `team/handoff/2026-10-27_1340_joao_para_lamy.md` | João | 82 testes backend e quatro percursos UI simulados concluídos; duas falhas de jornada documentadas |
+| Contexto geral de inflação e poder de compra | `docs/KB_INFLACAO_JOAO.md`; três fontes em `backend/kb/`; regressão: `backend/tests/test_kb_inflacao.py` | João | PR #24; 63 testes específicos e 158 testes backend passaram; revisão pendente |
 | Pipeline RAG | POR CRIAR | luislamy | — |
 | Quem faz o quê | `team/OPERACAO.md` §2 | grupo | POR CONFIRMAR |
 | Backend (FastAPI) + ferramentas de cálculo | POR CRIAR | POR DECIDIR | — |

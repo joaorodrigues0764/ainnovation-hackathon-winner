@@ -48,3 +48,30 @@ def test_produto(q):
 ])
 def test_perguntas_normais_passam(q):
     assert kinds(q) == []
+
+
+def test_uc15_valores_atuais():
+    hits = check_scope("Quais são os escalões de IRS deste ano e quanto está hoje a Euribor?")
+    assert [h.kind for h in hits] == ["valores_atuais"]
+    assert {r["url"] for r in hits[0].referrals} == {"https://www.portaldasfinancas.gov.pt",
+                                                      "https://clientebancario.bportugal.pt"}
+    assert "NÃO indiques números" in hits[0].instruction
+
+
+@pytest.mark.parametrize("q", [
+    "Quanto está a Euribor neste momento?",
+    "Qual o salário mínimo em vigor?",
+    "Qual a taxa de inflação atual?",
+])
+def test_valores_atuais_variantes(q):
+    assert "valores_atuais" in kinds(q)
+
+
+@pytest.mark.parametrize("q", [
+    "O que é a Euribor?",                            # conceito sem marca de "agora"
+    "O que são escalões de IRS?",
+    "Quanto pago por mês num crédito de 1000 euros a 12% em 24 prestações?",
+    "Hoje recebi o ordenado, como o divido?",        # "hoje" sem tema volátil
+])
+def test_valores_atuais_nao_dispara_sem_necessidade(q):
+    assert "valores_atuais" not in kinds(q)

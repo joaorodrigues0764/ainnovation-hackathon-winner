@@ -56,7 +56,8 @@ SCHEMAS = [
         ["deposito_mensal", "taxa_anual", "anos"]),
     _fn("orcamento",
         "Saldo do mês e divisão de referência 50/30/20 (necessidades/desejos/poupança). Usar sempre que a "
-        "pessoa diz quanto recebe e pergunta como dividir, organizar ou gerir esse dinheiro.",
+        "pessoa diz quanto recebe e pergunta como dividir, organizar ou gerir esse dinheiro. Com gastos > 0, o "
+        "resultado traz também regra_do_que_sobra (50/30/20 do saldo): usar esses valores, nunca dividir de cabeça.",
         {"entradas": _num("rendimento líquido do mês em €"),
          "gastos": _num("gastos do mês em € (0 se não disse)")},
         ["entradas", "gastos"]),
@@ -75,12 +76,22 @@ SCHEMAS = [
 _FUNCS = {s["function"]["name"]: getattr(calculators, s["function"]["name"]) for s in SCHEMAS}
 
 
-def run_tool(name: str, arguments: str | dict) -> dict:
-    """Executa uma calculadora. Erros voltam como {"erro": ...} para o LLM pedir o valor certo."""
+def run_tool(name: str, arguments: str | dict, profile: dict | None = None) -> dict:
+    """Executa uma calculadora. Erros voltam como {"erro": ...} para o LLM pedir o valor certo.
+    Com o perfil, acrescenta contas que o LLM faria de cabeça (ex.: taxa de esforço do crédito)."""
     if name not in _FUNCS:
         return {"erro": f"função desconhecida: {name}"}
     try:
         args = json.loads(arguments or "{}") if isinstance(arguments, str) else dict(arguments)
-        return _FUNCS[name](**{k: v for k, v in args.items() if v is not None})
+        result = _FUNCS[name](**{k: v for k, v in args.items() if v is not None})
     except (ValueError, TypeError) as e:  # inclui JSON inválido e argumentos em falta/errados
         return {"erro": str(e)}
+    if name == "orcamento" and result["gastos"] > 0 and result["saldo"] > 0:
+        # "como divido o resto?": o harness apanhou o LLM a fazer 50/30/20 do que sobra de cabeça
+        result["regra_do_que_sobra"] = calculators.orcamento(result["saldo"], 0)["regra"]
+    rendimento = (profile or {}).get("rendimento_liquido")
+    if name == "custo_credito" and rendimento:
+        # "a prestação é ~15 % do rendimento": o harness apanhou o LLM a fazer esta divisão de cabeça
+        result["taxa_esforco_pct"] = round(result["prestacao_mensal"] / rendimento * 100, 1)
+        result["rendimento_liquido"] = rendimento
+    return result
