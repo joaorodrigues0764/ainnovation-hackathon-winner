@@ -55,7 +55,8 @@ SCHEMAS = [
          "capital_inicial": _num("valor já depositado no início em € (0 se nada)")},
         ["deposito_mensal", "taxa_anual", "anos"]),
     _fn("orcamento",
-        "Saldo do mês e divisão de referência 50/30/20 (necessidades/desejos/poupança).",
+        "Saldo do mês e divisão de referência 50/30/20 (necessidades/desejos/poupança). Usar sempre que a "
+        "pessoa diz quanto recebe e pergunta como dividir, organizar ou gerir esse dinheiro.",
         {"entradas": _num("rendimento líquido do mês em €"),
          "gastos": _num("gastos do mês em € (0 se não disse)")},
         ["entradas", "gastos"]),
