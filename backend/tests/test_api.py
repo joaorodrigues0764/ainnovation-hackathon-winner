@@ -268,6 +268,36 @@ def test_citacoes_antigas_saem_do_historico(client):
     assert sent == "A TAEG mede o custo total. Inclui comissões."
 
 
+def test_limite_por_ip_e_por_dia(client):
+    client.app.state.limiter = api.RateLimiter(per_min=2, per_day=0)
+    codes = [client.post("/chat", json={"question": "O que é a TAEG?"}).status_code for _ in range(3)]
+    assert codes == [200, 200, 429]
+    r = client.post("/chat/stream", json={"question": "O que é a TAEG?"})
+    assert r.status_code == 429 and r.headers["retry-after"] == "60" and "Espera" in r.json()["detail"]
+    client.app.state.limiter = api.RateLimiter(per_min=0, per_day=1)
+    assert client.post("/chat", json={"question": "TAEG?"}).status_code == 200
+    assert "hoje" in client.post("/chat", json={"question": "TAEG?"}).json()["detail"]
+
+
+def test_sem_limite_por_omissao(client):
+    assert all(client.post("/chat", json={"question": "TAEG?"}).status_code == 200 for _ in range(5))
+
+
+def test_cors_aceita_previews_do_vercel_por_regex():
+    from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.testclient import TestClient as TC
+    from fastapi import FastAPI
+    app = FastAPI()
+    app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000"],
+                       allow_origin_regex=r"https://caixa-explica-.*\.vercel\.app", allow_methods=["POST"],
+                       allow_headers=["Content-Type"])
+    app.post("/x")(lambda: {})
+    hdr = {"Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "content-type"}
+    ok = TC(app).options("/x", headers={**hdr, "Origin": "https://caixa-explica-git-main-luis.vercel.app"})
+    bad = TC(app).options("/x", headers={**hdr, "Origin": "https://outro.vercel.app"})
+    assert ok.headers.get("access-control-allow-origin") and not bad.headers.get("access-control-allow-origin")
+
+
 # ---------------------------------------------------------------- juiz de completude
 
 INCOMPLETA = ('{"completa": false, "em_falta": ["despesas fixas mensais"], '

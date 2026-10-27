@@ -27,8 +27,11 @@ USER app
 ENV USE_EMBEDDINGS=$EMBEDDINGS \
     HF_HOME=/home/app/.cache/huggingface
 
+# PORT: o Render (e outros) diz em que porta ouvir; localmente fica 8000
+ENV PORT=8000
 EXPOSE 8000
 # no 1.º arranque com embeddings descarrega o modelo (~470 MB): dar até ~10 min
 HEALTHCHECK --interval=10s --timeout=5s --start-period=60s --retries=60 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=4)"
-CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
+    CMD python -c "import os, urllib.request; urllib.request.urlopen('http://localhost:%s/health' % os.environ['PORT'], timeout=4)"
+# --proxy-headers: atrás do proxy do Render, o IP do cliente vem em X-Forwarded-For (limite por IP)
+CMD ["sh", "-c", "exec uvicorn api:app --host 0.0.0.0 --port ${PORT} --proxy-headers --forwarded-allow-ips='*'"]
