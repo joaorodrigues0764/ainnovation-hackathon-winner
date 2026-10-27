@@ -26,8 +26,12 @@ import json
 import os
 import re
 import sys
+import time
+from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from datetime import date
+from threading import Lock
 from pathlib import Path
 from typing import Iterator, Literal
 
@@ -44,6 +48,11 @@ from tools import SCHEMAS, run_tool
 KB_DIR = os.getenv("KB_DIR", str(Path(__file__).resolve().parent / "kb"))
 USE_EMBEDDINGS = os.getenv("USE_EMBEDDINGS", "1") != "0"
 CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")]
+# os previews do Vercel mudam de URL a cada push: ex. https://caixa-explica-.*\.vercel\.app
+CORS_ORIGIN_REGEX = os.getenv("CORS_ORIGIN_REGEX") or None
+# numa API pública cada pergunta gasta tokens da chave: 0 = sem limite (local)
+RATE_LIMIT_PER_MIN = int(os.getenv("RATE_LIMIT_PER_MIN", "0"))
+DAILY_LIMIT = int(os.getenv("DAILY_LIMIT", "0"))
 MAX_HISTORY = 12  # mensagens (≈ 6 trocas) que seguem para o LLM
 
 JOURNEY_LABELS = {
@@ -160,6 +169,7 @@ def prepare(req: ChatRequest) -> Prepared:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.rag = RAG(KB_DIR, use_embeddings=USE_EMBEDDINGS)  # uma vez, no arranque
+    app.state.limiter = RateLimiter(RATE_LIMIT_PER_MIN, DAILY_LIMIT)
     yield
 
 
@@ -167,9 +177,42 @@ app = FastAPI(title="Caixa Explica API", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
+    allow_origin_regex=CORS_ORIGIN_REGEX,
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
 )
+
+
+class RateLimiter:
+    """Limite em memória: pedidos por IP por minuto e total por dia. Chega para uma instância de demo."""
+
+    def __init__(self, per_min: int, per_day: int):
+        self.per_min, self.per_day = per_min, per_day
+        self._hits: dict[str, deque[float]] = defaultdict(deque)
+        self._day, self._today = date.today(), 0
+        self._lock = Lock()
+
+    def check(self, ip: str) -> None:
+        if not (self.per_min or self.per_day):
+            return
+        now = time.monotonic()
+        with self._lock:
+            if date.today() != self._day:
+                self._day, self._today = date.today(), 0
+            if self.per_day and self._today >= self.per_day:
+                raise HTTPException(429, "Atingimos o limite de perguntas de hoje. Volta amanhã.")
+            hits = self._hits[ip]
+            while hits and now - hits[0] > 60:
+                hits.popleft()
+            if self.per_min and len(hits) >= self.per_min:
+                raise HTTPException(429, "Muitas perguntas seguidas. Espera um minuto.",
+                                    headers={"Retry-After": "60"})
+            hits.append(now)
+            self._today += 1
+
+
+def _limit(request: Request) -> None:
+    request.app.state.limiter.check(request.client.host if request.client else "?")
 
 
 def _rag(request: Request) -> RAG:
@@ -190,6 +233,7 @@ def journeys():
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(req: ChatRequest, request: Request):
+    _limit(request)
     p = prepare(req)
     try:
         out = _rag(request).answer(p.question, **p.rag_kwargs(req))
@@ -207,6 +251,7 @@ def _sse(event: str, data: dict) -> str:
 
 @app.post("/chat/stream")
 def chat_stream(req: ChatRequest, request: Request):
+    _limit(request)
     p = prepare(req)
     rag = _rag(request)
 

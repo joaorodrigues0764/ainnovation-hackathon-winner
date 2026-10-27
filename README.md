@@ -21,6 +21,10 @@ docker compose up --build
 - A chave **não** vai para a imagem: o `.env` está no `.dockerignore` e só entra no contentor ao arrancar (`env_file`).
 - Parar: `Ctrl+C` ou `docker compose down`.
 
+### Online (API no Render, front no Vercel)
+
+Passo a passo em [`docs/DEPLOY.md`](docs/DEPLOY.md). O serviço da API está descrito em [`render.yaml`](render.yaml) (Render → New → Blueprint); o front é um projeto Vercel com Root Directory `frontend`.
+
 ## Equipa
 luislamy · Aless
 

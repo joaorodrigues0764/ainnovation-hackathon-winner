@@ -1,0 +1,33 @@
+# Render Blueprint da API (FastAPI + RAG). O front vai para o Vercel: ver docs/DEPLOY.md.
+# No Render: New → Blueprint → escolher este repo. Os valores com `sync: false` são pedidos no ecrã.
+services:
+  - type: web
+    name: caixa-explica-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    region: frankfurt          # o mais perto de Portugal
+    plan: free                 # adormece após 15 min sem pedidos: acordar antes da demo (ver DEPLOY.md)
+    healthCheckPath: /health
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false            # a chave fica só no Render, nunca no repo nem no Vercel
+      - key: OPENAI_MODEL
+        sync: false
+      - key: OPENAI_REASONING_EFFORT
+        sync: false            # "none" para o gpt-6-luna; vazio para o gpt-4o-mini
+      # sem embeddings: o torch não cabe nos 512 MB do plano free (com plano pago, pôr 1 nos dois)
+      - key: EMBEDDINGS        # também chega ao build do Docker (ARG EMBEDDINGS)
+        value: "0"
+      - key: USE_EMBEDDINGS
+        value: "0"
+      - key: CORS_ORIGINS
+        sync: false            # https://<projeto>.vercel.app (vários separados por vírgulas)
+      - key: CORS_ORIGIN_REGEX
+        sync: false            # previews do Vercel, ex.: https://caixa-explica-.*\.vercel\.app
+      - key: RATE_LIMIT_PER_MIN
+        value: "10"            # por IP
+      - key: DAILY_LIMIT
+        value: "500"           # perguntas por dia no total, para travar gastos na chave
+      - key: JUDGE
+        value: "1"
