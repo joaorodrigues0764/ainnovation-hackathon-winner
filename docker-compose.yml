@@ -1,0 +1,31 @@
+# API + front-end locais.  Antes: copiar .env.example para .env e pôr a OPENAI_API_KEY.
+#   docker compose up --build            → http://localhost:3000 (front) e http://localhost:8000/docs (API)
+#   EMBEDDINGS=0 docker compose up --build   → imagem pequena, só BM25 (rede fraca / pressa)
+services:
+  api:
+    build:
+      context: ./backend
+      args:
+        EMBEDDINGS: ${EMBEDDINGS:-1}
+    env_file: .env            # a chave fica fora da imagem: só entra no contentor ao arrancar
+    environment:
+      USE_EMBEDDINGS: ${EMBEDDINGS:-1}
+      CORS_ORIGINS: http://localhost:3000
+    ports:
+      - "8000:8000"
+    volumes:
+      - hf-cache:/home/app/.cache/huggingface   # modelo de embeddings descarregado uma só vez
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  hf-cache:

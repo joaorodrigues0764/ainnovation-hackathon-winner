@@ -329,7 +329,8 @@ class RAG:
     @staticmethod
     def _cited(text: str, sources: list[dict]) -> list[dict]:
         cited = {int(n) for n in re.findall(r"\[(\d+)\]", text)}
-        return [s for s in sources if s["n"] in cited] or sources
+        # só as citadas: sem [n] na resposta, a lista fica vazia (mostrar todas parecia citação e não era)
+        return [s for s in sources if s["n"] in cited]
 
     def _prepare(self, question: str, journey: str | None, profile: dict | None,
                  tool_results: dict | None, k: int, history: list[dict] | None,

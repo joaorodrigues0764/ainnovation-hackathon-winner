@@ -36,7 +36,7 @@ SCHEMAS = [
         "Prestação mensal, total a pagar e juros de um crédito com prestações iguais (taxa nominal). "
         "Usar para 'quanto pago por mês', 'quanto custa o crédito', 'e se for a N meses?'.",
         {"montante": _num("valor pedido em €"),
-         "taxa_anual_nominal": _num("taxa nominal anual em percentagem (9 = 9%)"),
+         "taxa_anual_nominal": _num("taxa nominal anual em decimal (0.09 = 9%; 1% = 0.01)"),
          "prestacoes": _int("número de prestações mensais")},
         ["montante", "taxa_anual_nominal", "prestacoes"]),
     _fn("objetivo_poupanca",
@@ -50,7 +50,7 @@ SCHEMAS = [
     _fn("juros_compostos",
         "Valor final de depósitos mensais com juros compostos (capitalização mensal).",
         {"deposito_mensal": _num("depósito por mês em €"),
-         "taxa_anual": _num("taxa anual em percentagem (3 = 3%)"),
+         "taxa_anual": _num("taxa anual em decimal (0.03 = 3%; 1% = 0.01)"),
          "anos": _num("prazo em anos"),
          "capital_inicial": _num("valor já depositado no início em € (0 se nada)")},
         ["deposito_mensal", "taxa_anual", "anos"]),
@@ -66,7 +66,7 @@ SCHEMAS = [
     _fn("efeito_inflacao",
         "Poder de compra de um valor daqui a N anos com inflação constante.",
         {"valor": _num("valor em €"),
-         "taxa_inflacao": _num("inflação anual em percentagem (2 = 2%)"),
+         "taxa_inflacao": _num("inflação anual em decimal (0.02 = 2%)"),
          "anos": _num("anos")},
         ["valor", "taxa_inflacao", "anos"]),
 ]

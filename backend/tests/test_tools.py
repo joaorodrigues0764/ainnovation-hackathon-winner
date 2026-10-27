@@ -34,3 +34,13 @@ def test_erros_nunca_rebentam():
     assert "erro" in run_tool("custo_credito", '{"montante": 1000}')                   # faltam argumentos
     assert "erro" in run_tool("custo_credito", '{"montante": 1000, "taxa_anual_nominal": 12, "prestacoes": 24, "x": 1}')
     assert "erro" in run_tool("custo_credito", '{"montante": -5, "taxa_anual_nominal": 12, "prestacoes": 24}')
+
+
+def test_taxas_em_decimal_sem_ambiguidade_no_1_porcento():
+    # o esquema pede decimal ao LLM: 1 % chega como 0.01 (o número 1 seria lido como 100 %)
+    for s in SCHEMAS:
+        for nome, p in s["function"]["parameters"]["properties"].items():
+            if "taxa" in nome:
+                assert "decimal" in p["description"], (s["function"]["name"], nome)
+    r = run_tool("juros_compostos", '{"deposito_mensal": 100, "taxa_anual": 0.01, "anos": 1}')
+    assert 1200 < r["valor_final"] < 1210
