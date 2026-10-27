@@ -199,7 +199,11 @@ export default function Home() {
           )}
           {health === "down" && (
             <p className="rounded-lg bg-bad-soft px-3 py-2 text-sm text-bad" role="alert">
-              Não consigo falar com a API em {API_URL}. Está a correr? (<code>uvicorn api:app --port 8000</code> em <code>backend/</code>)
+              {API_URL.includes("localhost") ? (
+                <>Não consigo falar com a API em {API_URL}. Está a correr? (<code>uvicorn api:app --port 8000</code> em <code>backend/</code>)</>
+              ) : (
+                <>O servidor está a acordar (pode demorar até 1 minuto). Recarrega a página daqui a pouco.</>
+              )}
             </p>
           )}
         </section>

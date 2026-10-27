@@ -5,6 +5,13 @@ const nextConfig: NextConfig = {
   output: process.env.NEXT_OUTPUT === "standalone" ? "standalone" : undefined,
   cacheComponents: true,
   partialPrefetching: true,
+  // produção: o browser chama /api no próprio domínio e o Vercel passa ao Render, por isso não há CORS
+  rewrites: async () => [
+    {
+      source: "/api/:path*",
+      destination: `${(process.env.API_PROXY_TARGET ?? "https://caixa-explica-api.onrender.com").replace(/\/$/, "")}/:path*`,
+    },
+  ],
   turbopack: {
     rules: {
       "*.css": {
