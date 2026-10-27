@@ -20,3 +20,4 @@
 | 27/10 14:25 | push | aless/evals (local) | - | Claude | Claude | scripts/avaliar_pipeline.py: 16 verificações deterministas por UC (calculadoras, guardrails, máscara) | - |
 | 27/10 14:04 | commit local (sem push) | joao/kb | 29c21ae | João Rodrigues | Codex | Três fontes oficiais de inflação em geral; 63 verificações sem histórico e 158 testes backend passaram; grafia infllação sem resultados em BM25 | `docs/KB_INFLACAO_JOAO.md`; publicação e revisão cruzada pendentes |
 | 27/10 14:07 | push + abertura de PR | joao/kb | 7bb0aba (conteúdo: 29c21ae) | João Rodrigues | Codex | Contexto de inflação publicado com autorização; reiniciar API após integrar para reconstruir o índice | [PR #24](https://github.com/luislamy/ainnovation-hackathon-2026/pull/24); revisão cruzada pendente |
+| 27/10 14:25 | push | aless/front-ux (local) | - | Claude | Claude | UX jovens §2: alvos de toque ≥44 px, enterKeyHint, foco visível (frontend, testado a 375 px e 1280 px) | - |
