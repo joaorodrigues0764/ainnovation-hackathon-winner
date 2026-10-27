@@ -31,7 +31,54 @@ python rag.py "O IRS Jovem aplica-se a mim?" --no-embeddings
 
 Na primeira execução o sentence-transformers descarrega o modelo de embeddings (~470 MB). Façam isto já, enquanto a rede aguenta.
 
-## Interface para a FastAPI (equipa 3)
+## API (FastAPI)
+
+```powershell
+uvicorn api:app --reload --port 8000   # docs interativas em http://localhost:8000/docs
+```
+
+| Método | Rota | O que faz |
+| --- | --- | --- |
+| GET | `/health` | n.º de chunks, embeddings ligados, modelo |
+| GET | `/journeys` | `[{id, label}]` para o ecrã de escolha de jornada |
+| POST | `/chat` | resposta completa em JSON: `{answer, sources, chunks, warning}` |
+| POST | `/chat/stream` | a mesma resposta em Server-Sent Events |
+
+Corpo dos dois `POST`:
+
+```json
+{"question": "Vale a pena pedir crédito para o carro?",
+ "journey": "credito",
+ "profile": {"idade": 23, "rendimento_liquido": 1100, "objetivo": "carro de 8000 €"}}
+```
+
+`journey` e `profile` são opcionais. O perfil só aceita estes três campos.
+
+Eventos de `/chat/stream`, por esta ordem:
+
+| Evento | `data` | Quando |
+| --- | --- | --- |
+| `warning` | `{text, pii}` | só se a pergunta tinha NIF/IBAN/cartão (já removidos) |
+| `sources` | `{sources, chunks}` | antes do texto, para o front mostrar as fontes cedo |
+| `delta` | `{text}` | cada pedaço da resposta |
+| `done` | `{answer, sources}` | fim; `sources` = só as citadas |
+| `error` | `{detail}` | falhou a meio; o stream termina |
+
+O `EventSource` do browser só faz `GET`, por isso no Next.js lê-se o stream com `fetch` e `response.body.getReader()`.
+
+Testar o stream no terminal:
+
+```powershell
+curl.exe -N -X POST http://localhost:8000/chat/stream -H "Content-Type: application/json" -d '{\"question\": \"O que e a TAEG?\", \"journey\": \"credito\"}'
+```
+
+**Dados pessoais (UC-04):** NIF, IBAN e números de cartão são trocados por marcadores *antes* de a pergunta ir para a OpenAI, e a resposta começa com um aviso.
+
+**Calculadoras (RF2):** ligam-se em `calcular()` no `api.py`. O cliente não pode enviar números; só a API os passa ao LLM.
+
+Variáveis opcionais no `.env`: `KB_DIR`, `USE_EMBEDDINGS=0` (só BM25, arranque rápido), `CORS_ORIGINS` (por omissão `http://localhost:3000`, separar várias por vírgulas).
+
+## Usar o RAG diretamente em Python
 
 ```python
 from rag import RAG
@@ -39,7 +86,7 @@ rag = RAG("kb")   # no startup, uma vez
 
 out = rag.answer(
     question,
-    journey="credito",                       # credito | salario | irs | geral | None
+    journey="credito",                       # credito | salario | irs | burlas | poupanca | geral | None
     profile={"idade": 23, "rendimento_liquido": 1100},
     tool_results={"prestacao_mensal": 165.2}, # números das calculadoras
 )

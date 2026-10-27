@@ -24,6 +24,7 @@ import sys
 import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Iterator
 
 import numpy as np
 from dotenv import load_dotenv
@@ -34,6 +35,8 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 EMBED_MODEL = os.getenv("EMBED_MODEL", "intfloat/multilingual-e5-small")
 LLM_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")  # mudar para o modelo que a equipa usar
+JOURNEYS = ("credito", "salario", "irs", "burlas", "poupanca", "geral")  # = docs/KB_CONTRACT.md
+NO_SOURCES_ANSWER = "Não encontrei informação nas fontes para responder a isto."
 MAX_CHARS = 1200
 TOP_K = 5
 RRF_K = 60
@@ -180,6 +183,7 @@ class RAG:
             except Exception as e:  # sem rede/modelo: continua só com BM25
                 print(f"[rag] embeddings desligados ({e}); a usar só BM25", file=sys.stderr)
         self._llm = None
+        self._temperature: float | None = 0.1
 
     # ---- retrieval
 
@@ -243,27 +247,65 @@ class RAG:
         parts.append(f"PERGUNTA:\n{question}")
         return "\n\n".join(parts), sources
 
+    def _complete(self, user_msg: str, stream: bool = False):
+        messages = [{"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_msg}]
+        kwargs = {"model": LLM_MODEL, "messages": messages, "stream": stream}
+        if self._temperature is not None:
+            try:
+                return self._client().chat.completions.create(temperature=self._temperature, **kwargs)
+            except Exception as e:  # alguns modelos (ex.: de raciocínio) só aceitam a temperatura por omissão
+                if "temperature" not in str(e):
+                    raise
+                print(f"[rag] {LLM_MODEL} não aceita temperature; a usar a por omissão", file=sys.stderr)
+                self._temperature = None
+        return self._client().chat.completions.create(**kwargs)
+
+    @staticmethod
+    def _chunks_info(hits: list[dict]) -> list[dict]:
+        return [{"file": h["chunk"].file, "section": h["chunk"].section,
+                 "score": h["score"]} for h in hits]
+
+    @staticmethod
+    def _cited(text: str, sources: list[dict]) -> list[dict]:
+        cited = {int(n) for n in re.findall(r"\[(\d+)\]", text)}
+        return [s for s in sources if s["n"] in cited] or sources
+
     def answer(self, question: str, journey: str | None = None, profile: dict | None = None,
                tool_results: dict | None = None, k: int = TOP_K) -> dict:
         hits = self.retrieve(question, k=k, journey=journey)
         if not hits:
-            return {"answer": "Não encontrei informação nas fontes para responder a isto.",
-                    "sources": [], "chunks": []}
+            return {"answer": NO_SOURCES_ANSWER, "sources": [], "chunks": []}
         user_msg, sources = self.build_prompt(question, hits, profile, tool_results)
-        resp = self._client().chat.completions.create(
-            model=LLM_MODEL,
-            temperature=0.1,
-            messages=[{"role": "system", "content": SYSTEM_PROMPT},
-                      {"role": "user", "content": user_msg}],
-        )
+        resp = self._complete(user_msg)
         text = resp.choices[0].message.content.strip()
-        cited = {int(n) for n in re.findall(r"\[(\d+)\]", text)}
-        return {
-            "answer": text,
-            "sources": [s for s in sources if s["n"] in cited] or sources,
-            "chunks": [{"file": h["chunk"].file, "section": h["chunk"].section,
-                        "score": h["score"]} for h in hits],
-        }
+        return {"answer": text, "sources": self._cited(text, sources),
+                "chunks": self._chunks_info(hits)}
+
+    def stream_answer(self, question: str, journey: str | None = None,
+                      profile: dict | None = None, tool_results: dict | None = None,
+                      k: int = TOP_K) -> Iterator[dict]:
+        """Mesma resposta que answer(), em eventos:
+        {"type": "sources", "sources", "chunks"} -> {"type": "delta", "text"}* ->
+        {"type": "done", "answer", "sources"} (sources = só as citadas)."""
+        hits = self.retrieve(question, k=k, journey=journey)
+        if not hits:
+            yield {"type": "sources", "sources": [], "chunks": []}
+            yield {"type": "delta", "text": NO_SOURCES_ANSWER}
+            yield {"type": "done", "answer": NO_SOURCES_ANSWER, "sources": []}
+            return
+        user_msg, sources = self.build_prompt(question, hits, profile, tool_results)
+        yield {"type": "sources", "sources": sources, "chunks": self._chunks_info(hits)}
+
+        stream = self._complete(user_msg, stream=True)
+        parts = []
+        for event in stream:
+            delta = event.choices[0].delta.content if event.choices else None
+            if delta:
+                parts.append(delta)
+                yield {"type": "delta", "text": delta}
+        text = "".join(parts).strip()
+        yield {"type": "done", "answer": text, "sources": self._cited(text, sources)}
 
 
 # ---------------------------------------------------------------- CLI
@@ -272,7 +314,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("question")
     ap.add_argument("--kb", default="kb")
-    ap.add_argument("--journey", choices=["credito", "salario", "irs", "geral"])
+    ap.add_argument("--journey", choices=JOURNEYS)
     ap.add_argument("--retrieve-only", action="store_true", help="não chama o LLM")
     ap.add_argument("--no-embeddings", action="store_true")
     args = ap.parse_args()
