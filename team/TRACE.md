@@ -11,3 +11,4 @@
 | 27/10 12:25 | push | feat/api (PR #5, aberto) | 33ad419 | luislamy | Claude Opus 5.5 | Calculadoras ligadas por tool calling OpenAI; calcular() removido | POR VERIFICAR |
 | 27/10 12:23 | push | aless/kb2 (PR #10, aberto) | 1d33f03 | Claude | Claude | KB UC-03, 07, 08, 12, 17 (36 chunks) | - |
 | 27/10 12:15 | push | aless/handoff (PR #7, aberto) | e2c4a5f | Claude | Claude | HANDOFF e STATUS | - |
+| 27/10 12:35 | merge | aless/kb2 (PR #10) | 1416dd9 | luislamy | Claude | KB UC-03, 07, 08, 12, 17 em main (fundido pelo Lamy) | - |
