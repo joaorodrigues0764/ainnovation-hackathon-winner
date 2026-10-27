@@ -3,3 +3,5 @@ rank-bm25
 sentence-transformers
 openai
 python-dotenv
+fastapi
+uvicorn[standard]

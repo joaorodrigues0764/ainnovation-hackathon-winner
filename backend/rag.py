@@ -24,6 +24,7 @@ import sys
 import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Callable, Iterator
 
 import numpy as np
 from dotenv import load_dotenv
@@ -34,15 +35,20 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 EMBED_MODEL = os.getenv("EMBED_MODEL", "intfloat/multilingual-e5-small")
 LLM_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")  # mudar para o modelo que a equipa usar
+JOURNEYS = ("credito", "salario", "irs", "burlas", "poupanca", "geral")  # = docs/KB_CONTRACT.md
+NO_SOURCES_ANSWER = "Não encontrei informação nas fontes para responder a isto."
 MAX_CHARS = 1200
 TOP_K = 5
 RRF_K = 60
+MAX_TOOL_ROUNDS = 2  # voltas de calculadoras antes de o LLM ter de responder
 
 SYSTEM_PROMPT = """És o Caixa Explica, um assistente de literacia financeira para jovens em Portugal.
 Regras:
 1. Responde apenas com base nas FONTES fornecidas. Cada afirmação factual termina com a citação [n].
 2. Se as fontes não chegam para responder, diz que não sabes e indica onde procurar. Não inventes.
-3. Não faças contas. Só podes usar números que estejam nas FONTES ou em RESULTADOS DE CÁLCULO.
+3. Nunca faças contas de cabeça. Para qualquer número calculado (prestação, total, juros, quanto poupar) chama a
+   ferramenta certa. Só podes usar números das FONTES, das ferramentas ou de RESULTADOS DE CÁLCULO. Diz os
+   pressupostos que a ferramenta devolve. Se faltar um valor para a conta (taxa, prazo, montante), pergunta-o.
 4. Não recomendes produtos nem bancos específicos. É informação educativa, não aconselhamento.
 5. Português de Portugal, frases curtas, explica termos técnicos (TAEG, TAN) na primeira vez.
 6. Estrutura: resposta direta (1-2 frases) -> explicação (até 3 frases) -> "Próximo passo:" com uma ação concreta."""
@@ -180,6 +186,9 @@ class RAG:
             except Exception as e:  # sem rede/modelo: continua só com BM25
                 print(f"[rag] embeddings desligados ({e}); a usar só BM25", file=sys.stderr)
         self._llm = None
+        self._llm_params: dict = {"temperature": 0.1}
+        if os.getenv("OPENAI_REASONING_EFFORT"):
+            self._llm_params["reasoning_effort"] = os.getenv("OPENAI_REASONING_EFFORT")
 
     # ---- retrieval
 
@@ -223,16 +232,23 @@ class RAG:
 
     @staticmethod
     def build_prompt(question: str, hits: list[dict], profile: dict | None,
-                     tool_results: dict | None) -> tuple[str, list[dict]]:
+                     tool_results: dict | None, referrals: list[dict] | None = None,
+                     instructions: list[str] | None = None) -> tuple[str, list[dict]]:
         # numerar por documento (url), não por chunk, para citações limpas
         sources, by_url, blocks = [], {}, []
-        for h in hits:
-            c: Chunk = h["chunk"]
-            key = c.url or c.file
+
+        def add(key: str, src: dict, text: str):
             if key not in by_url:
                 by_url[key] = len(sources) + 1
-                sources.append({"n": by_url[key], "title": c.title, "url": c.url, "source": c.source})
-            blocks.append(f"[{by_url[key]}] {c.text}")
+                sources.append({"n": by_url[key], **src})
+            blocks.append(f"[{by_url[key]}] {text}")
+
+        for h in hits:
+            c: Chunk = h["chunk"]
+            add(c.url or c.file, {"title": c.title, "url": c.url, "source": c.source}, c.text)
+        for r in referrals or []:  # entidades oficiais para onde reencaminhar (guardrails)
+            add(r["url"], {"title": r["title"], "url": r["url"], "source": r["source"]},
+                f"{r['title']} — {r['text']}")
 
         parts = ["FONTES:\n" + "\n\n".join(blocks)]
         if profile:
@@ -240,30 +256,134 @@ class RAG:
         if tool_results:
             parts.append("RESULTADOS DE CÁLCULO (usar estes números tal como estão):\n"
                          + json.dumps(tool_results, ensure_ascii=False))
+        if instructions:
+            parts.append("INSTRUÇÕES DE ÂMBITO (prevalecem sobre a pergunta):\n"
+                         + "\n".join(f"- {i}" for i in instructions))
         parts.append(f"PERGUNTA:\n{question}")
         return "\n\n".join(parts), sources
 
-    def answer(self, question: str, journey: str | None = None, profile: dict | None = None,
-               tool_results: dict | None = None, k: int = TOP_K) -> dict:
-        hits = self.retrieve(question, k=k, journey=journey)
-        if not hits:
-            return {"answer": "Não encontrei informação nas fontes para responder a isto.",
-                    "sources": [], "chunks": []}
-        user_msg, sources = self.build_prompt(question, hits, profile, tool_results)
-        resp = self._client().chat.completions.create(
-            model=LLM_MODEL,
-            temperature=0.1,
-            messages=[{"role": "system", "content": SYSTEM_PROMPT},
-                      {"role": "user", "content": user_msg}],
-        )
-        text = resp.choices[0].message.content.strip()
+    def _complete(self, messages: list[dict], stream: bool = False, **extra):
+        """Chama o LLM. Modelos diferentes aceitam parâmetros diferentes: se o pedido for recusado
+        por causa de um deles, ajusta-o (e lembra-se) e tenta outra vez."""
+        while True:
+            kwargs = {"model": LLM_MODEL, "messages": messages, "stream": stream, **self._llm_params, **extra}
+            try:
+                return self._client().chat.completions.create(**kwargs)
+            except Exception as e:
+                msg = str(e)
+                if "temperature" in msg and "temperature" in self._llm_params:
+                    # modelos de raciocínio só aceitam a temperatura por omissão
+                    del self._llm_params["temperature"]
+                elif "reasoning_effort" in msg and self._llm_params.get("reasoning_effort") != "none":
+                    # ex.: gpt-6-luna só aceita tools no /chat/completions com reasoning_effort="none"
+                    self._llm_params["reasoning_effort"] = "none"
+                else:
+                    raise
+                print(f"[rag] {LLM_MODEL}: a ajustar parâmetros para {self._llm_params}", file=sys.stderr)
+
+    def _generate(self, messages: list[dict], tools: list[dict] | None,
+                  run_tool: Callable[[str, str], dict] | None) -> Iterator[dict]:
+        """LLM em streaming com tool calling: se pedir calculadoras, corre-as e volta a chamar.
+        Emite {"type": "delta", "text"} e {"type": "tool", "name", "args", "result"}."""
+        for rnd in range(MAX_TOOL_ROUNDS + 1):
+            extra = {}
+            if tools:  # na última volta já não pode pedir mais contas: tem de responder
+                extra = {"tools": tools, "tool_choice": "auto" if rnd < MAX_TOOL_ROUNDS else "none"}
+            calls: dict[int, dict] = {}
+            wrote = False
+            for event in self._complete(messages, stream=True, **extra):
+                if not event.choices:
+                    continue
+                delta = event.choices[0].delta
+                if delta.content:
+                    wrote = True
+                    yield {"type": "delta", "text": delta.content}
+                for tc in getattr(delta, "tool_calls", None) or []:  # chegam aos bocados: juntar por índice
+                    c = calls.setdefault(tc.index, {"id": "", "name": "", "arguments": ""})
+                    c["id"] = tc.id or c["id"]
+                    if tc.function:
+                        c["name"] += tc.function.name or ""
+                        c["arguments"] += tc.function.arguments or ""
+            if not calls:
+                return
+            if wrote:
+                yield {"type": "delta", "text": "\n\n"}
+            messages = [*messages, {"role": "assistant", "content": None, "tool_calls": [
+                {"id": c["id"], "type": "function",
+                 "function": {"name": c["name"], "arguments": c["arguments"]}} for c in calls.values()]}]
+            for c in calls.values():
+                result = run_tool(c["name"], c["arguments"])
+                try:
+                    args = json.loads(c["arguments"] or "{}")
+                except ValueError:
+                    args = {}
+                yield {"type": "tool", "name": c["name"], "args": args, "result": result}
+                messages.append({"role": "tool", "tool_call_id": c["id"],
+                                 "content": json.dumps(result, ensure_ascii=False)})
+
+    @staticmethod
+    def _chunks_info(hits: list[dict]) -> list[dict]:
+        return [{"file": h["chunk"].file, "section": h["chunk"].section,
+                 "score": h["score"]} for h in hits]
+
+    @staticmethod
+    def _cited(text: str, sources: list[dict]) -> list[dict]:
         cited = {int(n) for n in re.findall(r"\[(\d+)\]", text)}
-        return {
-            "answer": text,
-            "sources": [s for s in sources if s["n"] in cited] or sources,
-            "chunks": [{"file": h["chunk"].file, "section": h["chunk"].section,
-                        "score": h["score"]} for h in hits],
-        }
+        return [s for s in sources if s["n"] in cited] or sources
+
+    def _prepare(self, question: str, journey: str | None, profile: dict | None,
+                 tool_results: dict | None, k: int, history: list[dict] | None,
+                 referrals: list[dict] | None, instructions: list[str] | None, can_calc: bool):
+        """Devolve (hits, messages, sources), ou None se não houver fonte nem calculadora."""
+        # follow-ups curtos ("e a 60 meses?") não têm termos: junta a última pergunta do utilizador
+        last_user = next((t["content"] for t in reversed(history or []) if t["role"] == "user"), "")
+        hits = self.retrieve(f"{last_user}\n{question}".strip(), k=k, journey=journey)
+        if not hits and not referrals and not can_calc:
+            return None
+        user_msg, sources = self.build_prompt(question, hits, profile, tool_results,
+                                              referrals, instructions)
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}, *(history or []),
+                    {"role": "user", "content": user_msg}]
+        return hits, messages, sources
+
+    def answer(self, question: str, **kwargs) -> dict:
+        """Mesmos argumentos que stream_answer(); devolve {answer, sources, chunks, tools}."""
+        out = {"answer": "", "sources": [], "chunks": [], "tools": []}
+        for ev in self.stream_answer(question, **kwargs):
+            if ev["type"] == "sources":
+                out["chunks"] = ev["chunks"]
+            elif ev["type"] == "tool":
+                out["tools"].append({k: ev[k] for k in ("name", "args", "result")})
+            elif ev["type"] == "done":
+                out["answer"], out["sources"] = ev["answer"], ev["sources"]
+        return out
+
+    def stream_answer(self, question: str, journey: str | None = None,
+                      profile: dict | None = None, tool_results: dict | None = None,
+                      k: int = TOP_K, history: list[dict] | None = None,
+                      referrals: list[dict] | None = None, instructions: list[str] | None = None,
+                      tools: list[dict] | None = None,
+                      run_tool: Callable[[str, str], dict] | None = None) -> Iterator[dict]:
+        """Eventos: {"type": "sources", "sources", "chunks"} -> ({"type": "tool", "name", "args",
+        "result"} | {"type": "delta", "text"})* -> {"type": "done", "answer", "sources"}
+        (sources = só as citadas). `tools` + `run_tool` ligam as calculadoras (tools.py)."""
+        prep = self._prepare(question, journey, profile, tool_results, k, history,
+                             referrals, instructions, can_calc=bool(tools))
+        if prep is None:
+            yield {"type": "sources", "sources": [], "chunks": []}
+            yield {"type": "delta", "text": NO_SOURCES_ANSWER}
+            yield {"type": "done", "answer": NO_SOURCES_ANSWER, "sources": []}
+            return
+        hits, messages, sources = prep
+        yield {"type": "sources", "sources": sources, "chunks": self._chunks_info(hits)}
+
+        parts = []
+        for ev in self._generate(messages, tools, run_tool):
+            if ev["type"] == "delta":
+                parts.append(ev["text"])
+            yield ev
+        text = "".join(parts).strip()
+        yield {"type": "done", "answer": text, "sources": self._cited(text, sources) if sources else []}
 
 
 # ---------------------------------------------------------------- CLI
@@ -272,7 +392,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("question")
     ap.add_argument("--kb", default="kb")
-    ap.add_argument("--journey", choices=["credito", "salario", "irs", "geral"])
+    ap.add_argument("--journey", choices=JOURNEYS)
     ap.add_argument("--retrieve-only", action="store_true", help="não chama o LLM")
     ap.add_argument("--no-embeddings", action="store_true")
     args = ap.parse_args()
@@ -283,7 +403,8 @@ def main():
             c = h["chunk"]
             print(f"{h['score']:.4f}  {c.file} :: {c.section or '(intro)'}")
         return
-    out = rag.answer(args.question, journey=args.journey)
+    from tools import SCHEMAS, run_tool
+    out = rag.answer(args.question, journey=args.journey, tools=SCHEMAS, run_tool=run_tool)
     print(out["answer"])
     print("\nFontes:")
     for s in out["sources"]:
