@@ -6,6 +6,7 @@ Regra: cada coisa vive num só sítio; este ficheiro só aponta. Quem cria ou mo
 |---|---|---|---|
 | Comportamento automático dos agentes (qualquer ferramenta) | `team/AGENTES_AUTO.md` | grupo | v1 |
 | Como operamos (branches, commits, revisão, tokens) | `team/OPERACAO.md` | grupo | v1 |
+| Prompt de arranque para a IA de cada pessoa | `team/PROMPT_ARRANQUE.md` | grupo | v1 |
 | Registo de pushes e merges (trace) | `team/TRACE.md` | todos (append) | ativo |
 | Domínio + guardrails do agente | `team/skills/literacia-financeira-jovens/SKILL.md` | grupo | v1 |
 | Operar contra o relógio (blocos, portões) | `team/skills/hackathon-sprint/SKILL.md` | grupo | v1 |

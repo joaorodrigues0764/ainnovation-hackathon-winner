@@ -12,3 +12,4 @@
 | 27/10 12:23 | push | aless/kb2 (PR #10, aberto) | 1d33f03 | Claude | Claude | KB UC-03, 07, 08, 12, 17 (36 chunks) | - |
 | 27/10 12:15 | push | aless/handoff (PR #7, aberto) | e2c4a5f | Claude | Claude | HANDOFF e STATUS | - |
 | 27/10 12:35 | merge | aless/kb2 (PR #10) | 1416dd9 | luislamy | Claude | KB UC-03, 07, 08, 12, 17 em main (fundido pelo Lamy) | - |
+| 27/10 12:40 | push | aless/trace (PR #11) | - | Claude | Claude | Prompt de arranque para as IAs da equipa (team/PROMPT_ARRANQUE.md) + índice | - |
