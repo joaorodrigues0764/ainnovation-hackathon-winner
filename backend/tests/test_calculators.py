@@ -69,9 +69,18 @@ def test_inflacao():
     lambda: objetivo_poupanca(600, 0), lambda: objetivo_poupanca(-1, 6), lambda: objetivo_poupanca(600, 2.5),
     lambda: custo_credito(0, 0.05, 12), lambda: custo_credito(1000, -0.01, 12), lambda: custo_credito(1000, 0.05, 0),
     lambda: juros_compostos(50, 0.03, 0), lambda: orcamento(0, 10), lambda: orcamento(100, -5),
-    lambda: orcamento(100, 10, regra=(50, 30, 30)), lambda: salario_liquido(0), lambda: custo_credito(1000, 12, 24), lambda: custo_credito(1000, 1.5, 24),
-    lambda: juros_compostos(50, 3, 5), lambda: efeito_inflacao(1000, 2, 10),
+    lambda: orcamento(100, 10, regra=(50, 30, 30)), lambda: salario_liquido(0), lambda: custo_credito(1000, 150, 24), lambda: custo_credito(1000, "abc", 24),
+    lambda: juros_compostos(50, -3, 5), lambda: efeito_inflacao(1000, "101%", 10),
 ])
 def test_entradas_invalidas_levantam_erro(chamada):
     with pytest.raises(ValueError):
         chamada()
+
+
+@pytest.mark.parametrize("entrada", [0.12, 12, "12%", "12 %", "12,0%", "0.12"])
+def test_taxa_aceita_formatos_e_converte_para_decimal(entrada):          # formato universal 0..1
+    assert custo_credito(1000, entrada, 24)["prestacao_mensal"] == 47.07
+
+
+def test_taxa_percentagem_pequena_so_como_texto_ou_decimal():
+    assert custo_credito(1000, "0.5%", 12) == custo_credito(1000, 0.005, 12)

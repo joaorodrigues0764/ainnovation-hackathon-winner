@@ -25,10 +25,25 @@ def _eur(x: Decimal) -> float:
 
 
 def _taxa(nome: str, x) -> Decimal:
-    """Taxa em decimal, de 0 a 1 (0.12 = 12 %). Fora disso é erro, para não aceitar 12 ou 0.0012 por engano."""
-    v = _d(x)
+    """Taxa -> formato universal: decimal de 0 a 1 (0.12 = 12 %).
+    Aceita 0.12 (decimal), 12 (percentagem, se > 1) e texto "12%" ou "12,5 %" (sempre percentagem).
+    Ambíguo só no número 1: lê-se como 100 %; 1 % escreve-se 0.01 ou "1%". Acima de 100 % é erro."""
+    if isinstance(x, bool):
+        raise ValueError(f"{nome} inválido: {x}")
+    pct = False
+    if isinstance(x, str):
+        txt = x.strip().replace(",", ".").replace(" ", "")
+        pct, txt = txt.endswith("%"), txt.rstrip("%")
+        try:
+            v = Decimal(txt)
+        except Exception:
+            raise ValueError(f"{nome} inválido: {x!r}") from None
+    else:
+        v = _d(x)
+    if pct or v > 1:
+        v = v / 100
     if v < 0 or v > 1:
-        raise ValueError(f"{nome} tem de estar entre 0 e 1 (0.12 = 12 %): {x}")
+        raise ValueError(f"{nome} fora do intervalo (0 a 100 %): {x}")
     return v
 
 
