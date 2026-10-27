@@ -163,6 +163,9 @@ export default function Home() {
             ))}
           </div>
         </div>
+        <p role="note" className="border-t border-line bg-card px-4 py-1.5 text-center text-xs leading-snug text-muted">
+          <strong className="font-semibold text-ink">Assistente de IA, pode errar.</strong> Não é aconselhamento financeiro, fiscal ou jurídico. Confirma nas fontes citadas e não partilhes dados pessoais.
+        </p>
       </header>
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-6 pt-4">
