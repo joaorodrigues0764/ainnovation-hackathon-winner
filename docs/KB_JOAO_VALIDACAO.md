@@ -1,6 +1,6 @@
 # Contributo do João — base de conhecimento
 
-Estado em 27/10/2026: quatro fontes acrescentadas na branch `joao/kb`, com formato e pesquisa local verificados. Revisão cruzada por outra ferramenta e publicação ainda pendentes.
+Estado em 27/10/2026: quatro fontes acrescentadas na branch `joao/kb`, com formato e pesquisa local verificados. Branch publicada e [PR #12](https://github.com/luislamy/ainnovation-hackathon-2026/pull/12) aberto após autorização do João. Revisão cruzada por outra ferramenta pendente.
 
 ## Âmbito e fontes
 
@@ -45,4 +45,4 @@ Regressão no corpus combinado: orçamento mensal, juros simples/compostos, TAEG
 - O filtro atual admite apenas a jornada pedida e `geral`. Por isso, perguntas sobre cartões encaminhadas para `salario` não recuperam o novo ficheiro de `credito`; a seleção da jornada continua a ser responsabilidade da integração.
 - A cobertura acima apoia partes dos casos de uso; não certifica a aprovação integral desses casos.
 - Observações sobre conteúdo existente, sem alterações: `bdp-taeg.md` cita a página inicial em vez da página específica; o ficheiro de IRS Jovem contém valores fiscais que precisam de confirmação oficial e período explícito antes da demo.
-- Próximo passo: revisão cruzada e, após autorização de publicação segundo as regras da equipa, push de `joao/kb` e PR para `main`.
+- Próximo passo: revisão cruzada do PR #12 pela equipa; integração em `main` apenas após decisão do grupo.
