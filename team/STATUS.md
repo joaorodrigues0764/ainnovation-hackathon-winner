@@ -8,6 +8,7 @@
 | Aless | Claude | calculadoras (`backend/calculators.py`), depois KB dos UC-03/07/08/12/17 e texto dos guardrails | `aless/calc` (a criar) | Lamy: ligar `mask_pii` e `calcular()` na API; responder ao comentário do PR #6 |
 | Simone | POR VERIFICAR | casos de uso (`USE_CASES.md`, 18 UCs em `main`) | — | — |
 | Guilherme, João | POR VERIFICAR | KB (com Aless) | POR VERIFICAR | — |
+| João | Codex | 13:40: verificação da KB integrada e UI com LLM simulado concluída; relatório local em `docs/QA_INTEGRACAO_JOAO.md` | joao/kb; PR #12 integrado | Lamy: dois exemplos entre jornadas; Aless: confirmar revisão dos quatro conteúdos finais; teste com modelo real pendente |
 
 ## Por decidir (grupo)
 1. OpenAI ou Ollama (hoje o código usa a API da OpenAI, gpt-4o-mini por omissão).
