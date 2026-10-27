@@ -1,0 +1,4 @@
+{
+  "env": { "CLAUDE_CODE_SUBAGENT_MODEL": "claude-haiku-5-5" },
+  "worktree": { "bgIsolation": "none" }
+}

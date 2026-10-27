@@ -6,12 +6,14 @@
 - O LLM não faz contas: cálculos em funções testadas. Segredos só em `.env`.
 - Revemos tudo, não alteramos nada dos outros sem decisão do grupo registada.
 
-## 2. Quem faz o quê (POR DECIDIR em grupo — proposta do plano, não confirmada)
+## 2. Quem faz o quê (do quadro de 27/10, ver `team/PLANO_EQUIPA.md`; POR CONFIRMAR com o grupo)
 | Pessoa | Ferramenta | Área | Branch |
 |---|---|---|---|
-| Aless | Claude (Pro) | API, agente, ferramentas de cálculo, revisões | `aless/<coisa>` |
-| luislamy | POR VERIFICAR | página de chat, funcionalidade visível, pitch | `luislamy/<coisa>` |
-| 3 restantes | POR VERIFICAR | POR DECIDIR | `nome/<coisa>` |
+| luislamy (Lamy) | POR VERIFICAR | 1 · pipeline RAG | `luislamy/<coisa>` |
+| Aless | Claude (Pro) | 2 · KB (com Guilherme e João) | `aless/<coisa>` |
+| Guilherme, João | POR VERIFICAR | 2 · KB | `guilherme/<coisa>`, `joao/<coisa>` |
+| Simone | POR VERIFICAR | 5 · casos de uso | `simone/<coisa>` |
+| POR DECIDIR | — | 3 · backend FastAPI e 4 · front Next.js | — |
 
 ## 3. Tokens (Claude Pro e ChatGPT partilhados) — regra para não gastar em duplicado
 - Antes de pedir a uma IA: ler `team/INDEX.md` e `team/TRACE.md` (o que já existe) para não refazer.
@@ -33,3 +35,7 @@
 
 ## 6. Relógio
 Congelar funcionalidades 14:15 · código 14:40 · entrega 14:55 (prazo 15:00). Detalhe: `team/skills/hackathon-sprint/SKILL.md`.
+
+## 7. Instalar a configuração do grupo (skills, agentes, modelos)
+Fonte única no git: `team/skills/`, `team/config/` (agentes, scripts, settings, CLAUDE.md) e `team/docs/`. Cada pessoa corre uma vez, na pasta do repo clonado: `sh team/instalar.sh` (copia para `.claude/`, `CLAUDE.md` e `docs/`, sem sobrescrever o que já existe e sem entrar no git). Claude Code carrega-os sozinho. ChatGPT e outras ferramentas: ler `AGENTS.md` e as skills em `team/skills/` como instruções.
+Quem altera a configuração (Aless): `sh team/sync-skills.sh` e commit em `aless/...`. Modelos por agente: Opus 5.5 (planeador, revisor-final, revisor-equipa), Sonnet 5.5 (orquestra, revisor-adversarial), Haiku 5.5 (batedor, escritor, medidor) — plano Pro: máx. 2 Haiku em paralelo.

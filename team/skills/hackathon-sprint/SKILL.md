@@ -1,11 +1,11 @@
 ---
 name: hackathon-sprint
-description: Operar um hackathon contra o relógio com o rigor do workflow da Saints — blocos de tempo, MVP ponta-a-ponta primeiro, portões de qualidade curtos, demo ensaiada e entrega a horas. Usar em todas as tarefas deste repo até à entrega.
+description: Operar um hackathon contra o relógio com o rigor de um workflow de agentes — blocos de tempo, MVP ponta-a-ponta primeiro, portões de qualidade curtos, demo ensaiada e entrega a horas. Usar em todas as tarefas deste repo até à entrega.
 ---
 
-# Hackathon sprint (adaptado de `workflow-agentes-base` + `saints-operacao`, 27/10/2026)
+# Hackathon sprint (adaptado de um workflow de agentes anterior, 27/10/2026)
 
-O workflow da Saints foi desenhado para semanas. Aqui há 4 horas. Mantém-se o rigor (Regra Zero, testes, segredos fora, revisão), corta-se a cerimónia (sem canais com lock, sem comités de lentes, sem maestros múltiplos).
+O workflow original foi desenhado para semanas. Aqui há 4 horas. Mantém-se o rigor (Regra Zero, testes, segredos fora, revisão), corta-se a cerimónia (sem canais com lock, sem comités de lentes, sem maestros múltiplos).
 
 ## 1. O relógio manda
 | Bloco | Hora | Saída obrigatória |
@@ -18,7 +18,7 @@ O workflow da Saints foi desenhado para semanas. Aqui há 4 horas. Mantém-se o 
 | 5. Demo | 14:15–14:40 | README, guião da demo (3 min), pitch, plano B se a API cair. **Congelar código às 14:40** |
 | 6. Entrega | 14:40–14:55 | último commit, push (OK do Aless), submissão; 5 min de folga |
 
-Atrasado mais de 15 min num bloco → cortar âmbito, nunca empurrar o relógio. Diz ao Aless o que se corta numa linha.
+Atrasado mais de 15 min num bloco → cortar âmbito, nunca empurrar o relógio. Diz ao humano o que se corta numa linha.
 
 ## 2. Ordem de trabalho em cada tarefa
 1. `date` → em que bloco estamos? A tarefa cabe no bloco?
@@ -26,7 +26,7 @@ Atrasado mais de 15 min num bloco → cortar âmbito, nunca empurrar o relógio.
 3. Implementar o mínimo que fecha a tarefa.
 4. Verificar a correr (não só ler): teste, `curl`, ou abrir a página. MEDIDO, não DEDUZIDO.
 5. Commit pequeno com mensagem clara. Push só com OK do Aless.
-6. Uma linha ao Aless: feito / o que falta / o que precisa dele.
+6. Uma linha ao humano: feito / o que falta / o que precisa dele.
 
 ## 3. Onde estão os pontos (prioridade)
 1. **Funciona na demo** (fluxo ponta-a-ponta estável).
@@ -53,5 +53,5 @@ Atrasado mais de 15 min num bloco → cortar âmbito, nunca empurrar o relógio.
 ## 7. O que NÃO se faz hoje
 Autenticação completa, base de dados complexa, deploy elaborado, refactors bonitos, funcionalidades fora do §3. Se surgir a ideia, vai para «Depois do hackathon» no README.
 
-## 8. Modelos e agentes (método Saints)
+## 8. Modelos e agentes (método de agentes)
 Opus 5.5 low/medium (`planeador`, `revisor-final`) → planeia e revê no fim. Sonnet 5.5 medium (sessão principal) → orquestra e distribui. Haiku 5.5 low (`batedor`, `escritor`, `medidor`) → todo o trabalho bruto: procurar ficheiros, escrever código e testes, correr testes. Tabela completa e ciclo: `CLAUDE.md` §6. No relógio: `planeador` no início de cada bloco (≤5 min); `revisor-final` antes de cada merge e no Portão 2.
