@@ -22,7 +22,7 @@ Texto em pt-PT, reescrito por palavras vossas ou resumido. Parágrafos curtos.
 
 ## Regras
 
-- `journey` ∈ `credito`, `salario`, `irs`, `geral` (o pipeline filtra por isto).
+- `journey` ∈ `credito`, `salario`, `irs`, `burlas`, `poupanca`, `geral` (o pipeline filtra por isto).
 - `url` obrigatório: é o que aparece citado na resposta.
 - Usar `##` para secções: cada secção vira um ou mais chunks, por isso cada uma deve fazer sentido sozinha.
 - Números (taxas, limites, escalões) sempre com a data ou período a que se referem.
@@ -36,4 +36,6 @@ Texto em pt-PT, reescrito por palavras vossas ou resumido. Parágrafos curtos.
 | credito | Portal do Cliente Bancário (TAEG, crédito aos consumidores, taxas máximas), Saldo Positivo |
 | salario | Portal do Cliente Bancário (depósitos, poupança), Saldo Positivo, Todos Contam |
 | irs | Portal das Finanças (IRS Jovem, retenção na fonte), Saldo Positivo (IRS Jovem, entrega do IRS) |
+| burlas | Banco de Portugal (Portal do Cliente Bancário), PSP/Polícia Judiciária, CMVM (alertas) |
+| poupanca | Todos Contam, Portal do Cliente Bancário |
 | geral | Todos Contam, glossário |
