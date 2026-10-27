@@ -156,7 +156,7 @@ export default function Home() {
                 role="radio"
                 aria-checked={mode === m}
                 onClick={() => setMode(m)}
-                className={`rounded-md px-2.5 py-1 font-medium ${mode === m ? "bg-ink text-bg" : "text-muted hover:text-ink"}`}
+                className={`min-h-9 rounded-md px-3 py-1.5 font-medium ${mode === m ? "bg-ink text-bg" : "text-muted hover:text-ink"}`}
               >
                 {m === "user" ? "Utilizador" : "Verboso"}
               </button>
@@ -174,19 +174,19 @@ export default function Home() {
                 role="radio"
                 aria-checked={journey === j.id}
                 onClick={() => setJourney(j.id)}
-                className={`rounded-full border px-3 py-1.5 text-sm ${journey === j.id ? "border-accent bg-accent-soft font-medium text-accent" : "border-line bg-card hover:border-accent"}`}
+                className={`min-h-11 rounded-full border px-4 py-2 text-sm ${journey === j.id ? "border-accent bg-accent-soft font-medium text-accent" : "border-line bg-card hover:border-accent"}`}
               >
                 {j.label}
               </button>
             ))}
           </div>
           <div className="flex flex-wrap items-center gap-3 text-sm">
-            <button onClick={() => setShowProfile((v) => !v)} className="font-medium text-accent hover:underline" aria-expanded={showProfile}>
+            <button onClick={() => setShowProfile((v) => !v)} className="min-h-11 font-medium text-accent hover:underline" aria-expanded={showProfile}>
               {showProfile ? "Fechar perfil" : profileSummary ? "Editar perfil" : "Adicionar perfil (opcional)"}
             </button>
             {profileSummary && !showProfile && <span className="text-muted">{profileSummary}</span>}
             {exchanges.length > 0 && (
-              <button onClick={reset} className="ml-auto text-muted hover:text-ink">Nova conversa</button>
+              <button onClick={reset} className="ml-auto min-h-11 px-2 text-muted hover:text-ink">Nova conversa</button>
             )}
           </div>
           {showProfile && (
@@ -221,7 +221,7 @@ export default function Home() {
                   <button
                     key={q}
                     onClick={() => send(q)}
-                    className="rounded-full border border-line bg-card px-3.5 py-1.5 text-left text-sm hover:border-accent hover:text-accent"
+                    className="min-h-11 rounded-full border border-line bg-card px-4 py-2 text-left text-sm hover:border-accent hover:text-accent"
                   >
                     {q}
                   </button>

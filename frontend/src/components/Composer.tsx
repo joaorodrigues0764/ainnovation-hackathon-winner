@@ -34,6 +34,7 @@ export function Composer({ busy, onSend, onStop }: { busy: boolean; onSend: (q: 
           id="question"
           ref={ref}
           rows={1}
+          enterKeyHint="send"
           maxLength={MAX}
           value={text}
           onChange={(e) => {
@@ -47,14 +48,14 @@ export function Composer({ busy, onSend, onStop }: { busy: boolean; onSend: (q: 
             }
           }}
           placeholder="Pergunta, por exemplo: e se for a 60 meses?"
-          className="max-h-40 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-[15px] outline-none field-sizing-content"
+          className="max-h-40 min-h-11 flex-1 resize-none bg-transparent px-2 py-2 text-[15px] outline-none field-sizing-content"
         />
         {busy ? (
-          <button type="button" onClick={onStop} className="h-10 shrink-0 rounded-xl border border-line px-4 text-sm font-medium hover:border-bad hover:text-bad">
+          <button type="button" onClick={onStop} className="h-11 shrink-0 rounded-xl border border-line px-4 text-sm font-medium hover:border-bad hover:text-bad">
             Parar
           </button>
         ) : (
-          <button type="submit" className="h-10 shrink-0 rounded-xl bg-accent px-4 text-sm font-medium text-white hover:opacity-90 disabled:opacity-40" disabled={!text.trim()}>
+          <button type="submit" className="h-11 shrink-0 rounded-xl bg-accent px-4 text-sm font-medium text-white hover:opacity-90 disabled:opacity-40" disabled={!text.trim()}>
             Enviar
           </button>
         )}
