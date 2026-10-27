@@ -33,7 +33,9 @@ export function cardBlocks(tools: ToolCall[]): CardBlock[] {
         return [{
           title: `Crédito de ${money(r.montante)} em ${r.prestacoes} meses`,
           main: { label: "Prestação mensal", value: money(r.prestacao_mensal) ?? "—" },
-          others: figures([["Total a pagar", money(r.total_a_pagar)], ["Juros", money(r.juros)]]),
+          others: figures([["Total a pagar", money(r.total_a_pagar)], ["Juros", money(r.juros)],
+                           ["Peso no rendimento", num(r.taxa_esforco_pct) === undefined ? undefined
+                             : `${String(r.taxa_esforco_pct).replace(".", ",")} %`]]),
           note,
         }];
       case "objetivo_poupanca": {

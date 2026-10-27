@@ -79,10 +79,22 @@ def test_casos_do_harness_sao_validos():
     import json
     cases = json.loads((ROOT / "docs/harness_cases.json").read_text(encoding="utf-8"))
     ids = [c["id"] for c in cases]
-    assert len(cases) == 20 and len(set(ids)) == len(ids)
+    assert len(cases) >= 20 and len(set(ids)) == len(ids)
     for c in cases:
         assert c["question"] and c.get("journey") in {"credito", "salario", "irs", "burlas", "poupanca", "geral"}
         assert c.get("follow_up_of") in (None, *ids)
         for name in c.get("expect", {}).get("tools", {}):
             assert name in {"custo_credito", "objetivo_poupanca", "juros_compostos", "orcamento",
                             "salario_liquido", "efeito_inflacao"}
+
+
+def test_clarificacao_medida_nos_dois_sentidos():
+    body = {"question": "Ganho 900 €, quanto gasto em lazer?", "history": []}
+    pede = h.Run(answer="Quanto pagas de renda? Próximo passo: responde.", judge={"complete": False})
+    assert h.evaluate({"id": "a", "expect": {"clarify": True}}, body, pede, {})["clarify_ok"] is True
+    nao_pede = h.Run(answer="Usa 50/30/20. Próximo passo: x.", judge={"complete": True})
+    r = h.evaluate({"id": "b", "expect": {"clarify": True}}, body, nao_pede, {})
+    assert r["clarify_ok"] is False and "devia pedir contexto" in r["problems"][0]
+    r = h.evaluate({"id": "c", "expect": {"clarify": False}}, body, pede, {})
+    assert r["clarify_ok"] is False and "sem precisar" in r["problems"][0]
+    assert h.evaluate({"id": "d", "expect": {}}, body, pede, {})["clarify_ok"] is None

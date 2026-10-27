@@ -12,6 +12,8 @@ Endpoints:
 
 Eventos de /chat/stream (cada um com `data:` em JSON):
     warning  {text, pii}              só se a mensagem tinha dados pessoais (foram mascarados)
+    judge    {complete, missing, questions, reason, ms, error}
+                                      juiz de completude (só sem guardrails e com JUDGE≠0)
     sources  {sources, chunks, scope} fontes recuperadas, antes do texto; scope = guardrails ativados
     tool     {name, args, result}     uma calculadora correu (os números do cartão de resposta)
     delta    {text}                   pedaço da resposta
@@ -41,6 +43,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from guardrails import check_scope
+from judge import Assessment, assess, clarify_instruction
 from privacy import mask_pii
 from rag import JOURNEYS, LLM_MODEL, RAG
 from tools import SCHEMAS, run_tool
@@ -109,6 +112,7 @@ class ChatResponse(BaseModel):
     tools: list[dict] = []
     scope: list[str] = []
     warning: str | None = None
+    judge: dict | None = None
 
 
 # ---------------------------------------------------------------- preparação do pedido
@@ -134,7 +138,8 @@ class Prepared:
     def rag_kwargs(self, req: ChatRequest) -> dict:
         return {"journey": req.journey, "profile": self.profile, "history": self.history,
                 "referrals": self.referrals, "instructions": self.instructions,
-                "tools": SCHEMAS, "run_tool": run_tool}  # RF2: as contas são das calculadoras
+                "tools": SCHEMAS,  # RF2: as contas são das calculadoras
+                "run_tool": lambda name, args: run_tool(name, args, profile=self.profile)}
 
 
 def prepare(req: ChatRequest) -> Prepared:
@@ -164,12 +169,24 @@ def prepare(req: ChatRequest) -> Prepared:
                     referrals, [h.instruction for h in hits])
 
 
+def judge_step(p: Prepared, req: ChatRequest, request: Request) -> Assessment | None:
+    """Juiz de completude: se faltarem dados, a resposta pede-os em vez de os supor (UC-01, UC-20).
+    Não corre quando há guardrails (esses casos já têm instrução própria)."""
+    if not request.app.state.judge or p.scope:
+        return None
+    a = assess(_rag(request)._complete, p.question, p.history, p.profile, req.journey)
+    if not a.complete:
+        p.instructions.append(clarify_instruction(a))
+    return a
+
+
 # ---------------------------------------------------------------- app
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.rag = RAG(KB_DIR, use_embeddings=USE_EMBEDDINGS)  # uma vez, no arranque
     app.state.limiter = RateLimiter(RATE_LIMIT_PER_MIN, DAILY_LIMIT)
+    app.state.judge = os.getenv("JUDGE", "1") != "0"
     yield
 
 
@@ -236,13 +253,14 @@ def chat(req: ChatRequest, request: Request):
     _limit(request)
     p = prepare(req)
     try:
+        a = judge_step(p, req, request)
         out = _rag(request).answer(p.question, **p.rag_kwargs(req))
     except RuntimeError as e:  # configuração (ex.: falta a chave)
         raise HTTPException(503, str(e))
     except Exception as e:
         print(f"[api] erro no LLM: {e!r}", file=sys.stderr)
         raise HTTPException(502, "O modelo não respondeu. Tenta outra vez.")
-    return {**out, "scope": p.scope, "warning": p.warning}
+    return {**out, "scope": p.scope, "warning": p.warning, "judge": a.to_dict() if a else None}
 
 
 def _sse(event: str, data: dict) -> str:
@@ -259,6 +277,9 @@ def chat_stream(req: ChatRequest, request: Request):
         if p.warning:
             yield _sse("warning", {"text": p.warning, "pii": p.pii})
         try:
+            a = judge_step(p, req, request)
+            if a:
+                yield _sse("judge", a.to_dict())
             for ev in rag.stream_answer(p.question, **p.rag_kwargs(req)):
                 kind = ev.pop("type")
                 if kind == "sources":

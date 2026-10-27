@@ -84,6 +84,27 @@ export function Inspector({ x }: { x: Exchange }) {
 
       {x.error && <div className="rounded-lg bg-bad-soft px-3 py-2 font-mono text-xs text-bad">{x.error}</div>}
 
+      <Section title="Juiz de completude" open={x.judge?.complete === false}>
+        {!x.judge ? (
+          <p className="text-muted">Não correu (guardrail ativo ou JUDGE=0).</p>
+        ) : (
+          <div className="space-y-1.5 text-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`rounded-full px-2 py-0.5 font-medium ${x.judge.complete ? "bg-ok-soft text-ok" : "bg-warn-soft text-warn"}`}>
+                {x.judge.complete ? "completa" : "faltam dados"}
+              </span>
+              <span className="font-mono text-muted">{ms(x.judge.ms)}</span>
+              {x.judge.error && <span className="text-bad">erro (seguiu sem clarificação): {x.judge.error}</span>}
+            </div>
+            {x.judge.reason && <p>{x.judge.reason}</p>}
+            {x.judge.missing.length > 0 && <p><span className="text-muted">Em falta:</span> {x.judge.missing.join("; ")}</p>}
+            {x.judge.questions.length > 0 && (
+              <ul className="list-disc pl-5">{x.judge.questions.map((q) => <li key={q}>{q}</li>)}</ul>
+            )}
+          </div>
+        )}
+      </Section>
+
       <Section title="Calculadoras" count={x.tools.length} open={x.tools.length > 0}>
         {x.tools.length === 0 ? (
           <p className="text-muted">Nenhuma calculadora foi chamada.</p>
