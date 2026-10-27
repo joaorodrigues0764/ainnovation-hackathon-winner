@@ -37,7 +37,9 @@ npm run build
 | 2 | Perfil curto e opcional (idade, rendimento, objetivo), validado, só em memória (RF1, privacidade) | `components/ProfileForm.tsx` |
 | 3 | Escrever pergunta (Enter envia, Shift+Enter muda de linha), resposta a chegar em stream, botão Parar | `components/Composer.tsx` |
 | 4 | Citações `[n]` clicáveis e lista de fontes com link (RF3) | `components/Answer.tsx`, `Sources.tsx` |
+| 4b | Cartão de resposta (PRD): número em destaque vindo só das calculadoras (evento `tool`, marcado "calculado"), explicação, "Próximo passo" destacado e fontes. Com crédito + poupança mostra os dois lado a lado | `lib/card.ts`, `components/ResultCard.tsx` |
 | 5 | Follow-ups com histórico ("e se for a 60 meses?", RF7) e "Nova conversa" | `lib/chat.ts` |
+| 5b | Sugestões de perguntas seguintes (até 3) depois de cada resposta, a partir das calculadoras que correram (prazos ±12 meses com os valores reais, poupar em vez de crédito, guardar mais por mês…), dos guardrails e da jornada. Sem chamada ao LLM; nunca repetem perguntas feitas nem prazos já calculados | `lib/followups.ts` |
 | 6 | Aviso quando a mensagem tinha dados pessoais (UC-04) | `components/ExchangeView.tsx` |
 | 7 | Erros claros com "Tentar outra vez"; aviso se a API estiver em baixo | `app/page.tsx` |
 | 8 | Aviso fixo: informação educativa, não é aconselhamento | `components/Composer.tsx` |

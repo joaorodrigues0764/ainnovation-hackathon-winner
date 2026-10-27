@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -53,6 +54,8 @@ JOURNEY_LABELS = {
     "poupanca": "Poupar para um objetivo",
     "geral": "Geral",
 }
+
+_CITE = re.compile(r" ?\[\d+\]")
 
 PII_LABELS = {
     "IBAN": "IBAN", "NIB": "NIB", "CARTAO": "número de cartão", "CODIGO": "código ou PIN",
@@ -141,7 +144,9 @@ def prepare(req: ChatRequest) -> Prepared:
         profile["objetivo"] = mask(profile["objetivo"])
     # só a pergunta atual conta para o aviso; o histórico já foi avisado na sua vez
     pii = [PII_LABELS.get(k, k) for k in found]
-    history = [{"role": t.role, "content": mask_pii(t.content).text}
+    # as citações [n] de respostas antigas apontam para outra numeração de fontes: tirá-las
+    # evita que o LLM as copie para a resposta nova (citações que não levam a lado nenhum)
+    history = [{"role": t.role, "content": _CITE.sub("", mask_pii(t.content).text)}
                for t in req.history[-MAX_HISTORY:]]
 
     hits = check_scope(question)
