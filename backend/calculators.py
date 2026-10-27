@@ -24,6 +24,29 @@ def _eur(x: Decimal) -> float:
     return float(x.quantize(_CENT, rounding=ROUND_HALF_UP))
 
 
+def _taxa(nome: str, x) -> Decimal:
+    """Taxa -> formato universal: decimal de 0 a 1 (0.12 = 12 %).
+    Aceita 0.12 (decimal), 12 (percentagem, se > 1) e texto "12%" ou "12,5 %" (sempre percentagem).
+    Ambíguo só no número 1: lê-se como 100 %; 1 % escreve-se 0.01 ou "1%". Acima de 100 % é erro."""
+    if isinstance(x, bool):
+        raise ValueError(f"{nome} inválido: {x}")
+    pct = False
+    if isinstance(x, str):
+        txt = x.strip().replace(",", ".").replace(" ", "")
+        pct, txt = txt.endswith("%"), txt.rstrip("%")
+        try:
+            v = Decimal(txt)
+        except Exception:
+            raise ValueError(f"{nome} inválido: {x!r}") from None
+    else:
+        v = _d(x)
+    if pct or v > 1:
+        v = v / 100
+    if v < 0 or v > 1:
+        raise ValueError(f"{nome} fora do intervalo (0 a 100 %): {x}")
+    return v
+
+
 def _pos(nome: str, x, *, zero_ok: bool = True) -> Decimal:
     v = _d(x)
     if v < 0 or (v == 0 and not zero_ok):
@@ -69,11 +92,11 @@ def objetivo_poupanca(valor: float, meses: int, ja_tenho: float = 0, mensal_disp
 def juros_compostos(deposito_mensal: float, taxa_anual: float, anos: float, capital_inicial: float = 0) -> dict:
     """Valor final com depósito mensal e capitalização mensal (depósito no fim de cada mês)."""
     p, c = _pos("deposito_mensal", deposito_mensal), _pos("capital_inicial", capital_inicial)
-    t, a = _pos("taxa_anual", taxa_anual), _pos("anos", anos, zero_ok=False)
+    t, a = _taxa("taxa_anual", taxa_anual), _pos("anos", anos, zero_ok=False)
     n = int(round(a * 12))
     if n <= 0:
         raise ValueError("prazo curto demais")
-    r = t / 100 / 12
+    r = t / 12
     if r == 0:
         final = c + p * n
     else:
@@ -81,40 +104,40 @@ def juros_compostos(deposito_mensal: float, taxa_anual: float, anos: float, capi
         final = c * f + p * (f - 1) / r
     depositado = c + p * n
     return {"depositado": _eur(depositado), "valor_final": _eur(final), "juros": _eur(final - depositado), "meses": n,
-            "pressupostos": f"taxa nominal {float(t)}% ao ano, capitalização mensal, depósitos no fim do mês, "
+            "pressupostos": f"taxa nominal {float(t * 100)}% ao ano, capitalização mensal, depósitos no fim do mês, "
                             "sem impostos nem comissões"}
 
 
 def custo_credito(montante: float, taxa_anual_nominal: float, prestacoes: int) -> dict:
     """Prestação e custo total (sistema francês, taxa nominal). NÃO é a TAEG: esta inclui comissões e seguros."""
-    m, t = _pos("montante", montante, zero_ok=False), _pos("taxa_anual_nominal", taxa_anual_nominal)
+    m, t = _pos("montante", montante, zero_ok=False), _taxa("taxa_anual_nominal", taxa_anual_nominal)
     if int(prestacoes) != prestacoes or prestacoes <= 0:
         raise ValueError(f"prestacoes inválido: {prestacoes}")
     n = int(prestacoes)
-    r = t / 100 / 12
+    r = t / 12
     pmt = m / n if r == 0 else m * r / (1 - (1 + r) ** -n)
     total = pmt * n
     return {"montante": _eur(m), "prestacoes": n, "prestacao_mensal": _eur(pmt), "total_a_pagar": _eur(total),
             "juros": _eur(total - m),
-            "pressupostos": f"taxa nominal {float(t)}% ao ano ({_eur(r * 100)}% ao mês), prestações iguais, "
+            "pressupostos": f"taxa nominal {float(t * 100)}% ao ano ({_eur(r * 100)}% ao mês), prestações iguais, "
                             "sem comissões, impostos nem seguros; a TAEG real pode ser superior. "
                             "Total = prestação exata x nº de prestações."}
 
 
 def efeito_inflacao(valor: float, taxa_inflacao: float, anos: float) -> dict:
     """Poder de compra de `valor` daqui a `anos` com inflação constante."""
-    v, t, a = _pos("valor", valor, zero_ok=False), _pos("taxa_inflacao", taxa_inflacao), _pos("anos", anos)
-    poder = v / ((1 + t / 100) ** _d(a))
+    v, t, a = _pos("valor", valor, zero_ok=False), _taxa("taxa_inflacao", taxa_inflacao), _pos("anos", anos)
+    poder = v / ((1 + t) ** _d(a))
     return {"valor": _eur(v), "poder_de_compra_futuro": _eur(poder), "perda": _eur(v - poder),
-            "pressupostos": f"inflação constante de {float(t)}% ao ano (exemplo, não previsão)"}
+            "pressupostos": f"inflação constante de {float(t * 100)}% ao ano (exemplo, não previsão)"}
 
 
-def salario_liquido(bruto: float, taxa_ss_pct: float = 11) -> dict:
+def salario_liquido(bruto: float, taxa_ss: float = 0.11) -> dict:
     """Bruto -> após Segurança Social. A retenção de IRS NÃO é calculada (depende de situação pessoal e tabelas).
-    taxa_ss_pct=11 vem do USE_CASES (UC-17): POR VERIFICAR na Segurança Social."""
-    b, s = _pos("bruto", bruto, zero_ok=False), _pos("taxa_ss_pct", taxa_ss_pct)
-    ss = b * s / 100
+    taxa_ss=0.11 (11 %) vem do USE_CASES (UC-17): POR VERIFICAR na Segurança Social."""
+    b, s = _pos("bruto", bruto, zero_ok=False), _taxa("taxa_ss", taxa_ss)
+    ss = b * s
     return {"bruto": _eur(b), "seguranca_social": _eur(ss), "apos_seguranca_social": _eur(b - ss),
             "retencao_irs": None,
-            "pressupostos": f"Segurança Social a {float(s)}% (trabalhador); retenção de IRS não calculada: "
+            "pressupostos": f"Segurança Social a {float(s * 100)}% (trabalhador); retenção de IRS não calculada: "
                             "confirmar tabelas no Portal das Finanças"}
