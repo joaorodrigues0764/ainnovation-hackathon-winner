@@ -1,6 +1,8 @@
+import { cardBlocks, splitNextStep } from "@/lib/card";
 import type { Exchange } from "@/lib/chat";
 import { Answer } from "./Answer";
 import { Inspector } from "./Inspector";
+import { ResultCard } from "./ResultCard";
 import { Sources } from "./Sources";
 
 export type Mode = "user" | "verbose";
@@ -20,6 +22,8 @@ function Pending({ x }: { x: Exchange }) {
 }
 
 export function ExchangeView({ x, mode, onRetry }: { x: Exchange; mode: Mode; onRetry: () => void }) {
+  // enquanto chega em stream fica tudo no corpo; o próximo passo só se separa no fim
+  const { body, next } = x.status === "done" ? splitNextStep(x.answer) : { body: x.answer, next: undefined };
   return (
     <article className="space-y-3" aria-busy={x.status === "streaming"}>
       <div className="flex justify-end">
@@ -36,12 +40,19 @@ export function ExchangeView({ x, mode, onRetry }: { x: Exchange; mode: Mode; on
         )}
 
         <div aria-live="polite">
+          <ResultCard blocks={cardBlocks(x.tools)} />
           {x.answer ? (
-            <Answer text={x.answer} exchangeId={x.id} sources={x.allSources} />
+            <Answer text={body} exchangeId={x.id} sources={x.allSources} />
           ) : (
             x.status === "streaming" && <Pending x={x} />
           )}
           {x.status === "streaming" && x.answer && <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse bg-accent align-middle" aria-hidden />}
+          {next && (
+            <div className="mt-4 rounded-xl border border-ok/25 bg-ok-soft px-3.5 py-2.5">
+              <div className="mb-0.5 text-xs font-medium uppercase tracking-wide text-ok">Próximo passo</div>
+              <Answer text={next} exchangeId={x.id} sources={x.allSources} />
+            </div>
+          )}
         </div>
 
         {x.status === "error" && (
