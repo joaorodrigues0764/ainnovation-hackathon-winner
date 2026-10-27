@@ -44,3 +44,9 @@ def test_found_nao_contem_valores():
 
 def test_vazio():
     assert mask_pii("").text == ""
+
+
+def test_uc10_iban_ficticio_incompleto():
+    r = mask_pii("O meu NIF é 123456789 e o meu IBAN é PT50 0000 1234 5678 9012 3. Podem ver o IRS Jovem?")
+    assert r.text == "O meu NIF é [NIF_OU_TELEMOVEL] e o meu IBAN é [IBAN]. Podem ver o IRS Jovem?"
+    assert r.found == {"IBAN": 1, "NIF_OU_TELEMOVEL": 1}
