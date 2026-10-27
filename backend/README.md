@@ -41,7 +41,7 @@ uvicorn api:app --reload --port 8000   # docs interativas em http://localhost:80
 | --- | --- | --- |
 | GET | `/health` | n.º de chunks, embeddings ligados, modelo |
 | GET | `/journeys` | `[{id, label}]` para o ecrã de escolha de jornada |
-| POST | `/chat` | resposta completa em JSON: `{answer, sources, chunks, warning}` |
+| POST | `/chat` | resposta completa em JSON: `{answer, sources, chunks, tools, scope, warning}` |
 | POST | `/chat/stream` | a mesma resposta em Server-Sent Events |
 
 Corpo dos dois `POST`:
@@ -64,6 +64,7 @@ Eventos de `/chat/stream`, por esta ordem:
 | --- | --- | --- |
 | `warning` | `{text, pii}` | só se a pergunta tinha dados pessoais (já tapados) |
 | `sources` | `{sources, chunks, scope}` | antes do texto, para o front mostrar as fontes cedo; `scope` = guardrails ativados |
+| `tool` | `{name, args, result}` | uma calculadora correu; `result` tem os números para o cartão de resposta (pode haver vários) |
 | `delta` | `{text}` | cada pedaço da resposta |
 | `done` | `{answer, sources}` | fim; `sources` = só as citadas |
 | `error` | `{detail}` | falhou a meio; o stream termina |
@@ -86,7 +87,17 @@ curl.exe -N -X POST http://localhost:8000/chat/stream -H "Content-Type: applicat
 | `acao_externa` | "podes renegociar o crédito / tratar do meu IRS?" | Banco de Portugal, DECO, Portal das Finanças |
 | `produto` | "qual o melhor banco?", "que cartão me recomendas?" | comparadores do Portal do Cliente Bancário |
 
-**Calculadoras (RF2):** ligam-se em `calcular()` no `api.py`. O cliente não pode enviar números; só a API os passa ao LLM.
+**Calculadoras (RF2), com tool calling:** `tools.py` expõe as funções de `calculators.py` ao LLM (`custo_credito`, `objetivo_poupanca`, `juros_compostos`, `orcamento`, `salario_liquido`, `efeito_inflacao`). O LLM escolhe a função e os argumentos a partir da pergunta, do perfil e do histórico; a conta é feita em Python e o resultado volta ao LLM, que só o explica. Se faltar um valor (ex.: a taxa), o LLM pergunta-o em vez de o inventar. Argumentos inválidos voltam ao LLM como `{"erro": ...}`. No máximo 2 voltas de calculadoras por resposta. O cliente não pode enviar números.
+
+Exemplo de evento `tool` para "e se for a 60 meses?":
+
+```json
+{"name": "custo_credito",
+ "args": {"montante": 8000, "taxa_anual_nominal": 9, "prestacoes": 60},
+ "result": {"prestacao_mensal": 166.07, "total_a_pagar": 9964.01, "juros": 1964.01, "pressupostos": "..."}}
+```
+
+**Modelos diferentes:** se o modelo recusar um parâmetro (`temperature`, ou tools sem `reasoning_effort="none"`, como o `gpt-6-luna`), o pipeline ajusta-o sozinho no 1.º pedido. Para evitar essa repetição, pode pôr-se `OPENAI_REASONING_EFFORT=none` no `.env`.
 
 Testes (não gastam tokens, o LLM é falso):
 

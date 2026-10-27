@@ -13,6 +13,7 @@ Endpoints:
 Eventos de /chat/stream (cada um com `data:` em JSON):
     warning  {text, pii}              só se a mensagem tinha dados pessoais (foram mascarados)
     sources  {sources, chunks, scope} fontes recuperadas, antes do texto; scope = guardrails ativados
+    tool     {name, args, result}     uma calculadora correu (os números do cartão de resposta)
     delta    {text}                   pedaço da resposta
     done     {answer, sources}        resposta final + só as fontes citadas
     error    {detail}                 falhou a meio; o stream termina
@@ -37,6 +38,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from guardrails import check_scope
 from privacy import mask_pii
 from rag import JOURNEYS, LLM_MODEL, RAG
+from tools import SCHEMAS, run_tool
 
 KB_DIR = os.getenv("KB_DIR", str(Path(__file__).resolve().parent / "kb"))
 USE_EMBEDDINGS = os.getenv("USE_EMBEDDINGS", "1") != "0"
@@ -92,6 +94,7 @@ class ChatResponse(BaseModel):
     answer: str
     sources: list[Source]
     chunks: list[dict]
+    tools: list[dict] = []
     scope: list[str] = []
     warning: str | None = None
 
@@ -118,8 +121,8 @@ class Prepared:
 
     def rag_kwargs(self, req: ChatRequest) -> dict:
         return {"journey": req.journey, "profile": self.profile, "history": self.history,
-                "tool_results": calcular(req, self.profile), "referrals": self.referrals,
-                "instructions": self.instructions}
+                "referrals": self.referrals, "instructions": self.instructions,
+                "tools": SCHEMAS, "run_tool": run_tool}  # RF2: as contas são das calculadoras
 
 
 def prepare(req: ChatRequest) -> Prepared:
@@ -145,11 +148,6 @@ def prepare(req: ChatRequest) -> Prepared:
     referrals = list({r["url"]: r for h in hits for r in h.referrals}.values())
     return Prepared(question, profile or None, history, pii, [h.kind for h in hits],
                     referrals, [h.instruction for h in hits])
-
-
-def calcular(req: ChatRequest, profile: dict | None) -> dict | None:
-    """Ligar aqui as calculadoras (RF2): devolve os números que o LLM pode usar."""
-    return None
 
 
 # ---------------------------------------------------------------- app
