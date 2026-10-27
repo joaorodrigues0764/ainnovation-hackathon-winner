@@ -1,5 +1,5 @@
 // Estado de cada troca (pergunta → resposta) construído a partir dos eventos SSE.
-import type { ChatRequest, Chunk, Source, StreamEvent, ToolCall, Turn } from "./api";
+import type { ChatRequest, Chunk, Judge, Source, StreamEvent, ToolCall, Turn } from "./api";
 
 export type ExchangeStatus = "streaming" | "done" | "error" | "stopped";
 
@@ -22,6 +22,8 @@ export interface Exchange {
   scope: string[];
   tools: ToolCall[];
   warning?: { text: string; pii: string[] };
+  /** Juiz de completude: se faltarem dados, a resposta termina com perguntas para os obter. */
+  judge?: Judge;
   error?: string;
   events: LoggedEvent[];
   timings: { sources?: number; firstDelta?: number; end?: number };
@@ -40,6 +42,9 @@ export function applyEvent(x: Exchange, ev: StreamEvent, t: number): Exchange {
   switch (ev.event) {
     case "warning":
       next.warning = ev.data;
+      break;
+    case "judge":
+      next.judge = ev.data;
       break;
     case "sources":
       next.sources = next.allSources = ev.data.sources;

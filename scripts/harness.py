@@ -7,6 +7,7 @@
     próximo      respostas com "Próximo passo"                           alvo ≥ 90 %
     calculadora  a calculadora certa correu e deu os valores esperados   alvo 100 %
     guardrails   scope/PII esperados                                     alvo 100 %
+    clarificação o juiz pede contexto quando faltam dados, e só então     alvo 100 %
     latência     1.º texto e total (p50/p95)                             alvo < 5 s
 
 Gasta tokens (1 pedido ao LLM por caso). Correr com a API ligada:
@@ -148,6 +149,7 @@ class Run:
     scope: list[str] = field(default_factory=list)
     pii: list[str] = field(default_factory=list)
     tools: list[dict] = field(default_factory=list)
+    judge: dict | None = None
     error: str | None = None
     first_text_s: float | None = None
     total_s: float = 0.0
@@ -178,6 +180,8 @@ def call_stream(api: str, body: dict, timeout: float = 120) -> Run:
 def _apply(run: Run, event: str, d: dict, t: float) -> None:
     if event == "warning":
         run.pii = d.get("pii", [])
+    elif event == "judge":
+        run.judge = d
     elif event == "sources":
         run.chunks, run.scope = d.get("chunks", []), d.get("scope", [])
     elif event == "tool":
@@ -212,10 +216,18 @@ def evaluate(case: dict, body: dict, run: Run, kb: dict[tuple[str, str], str]) -
         problems.append(f"scope esperado {exp.get('scope', [])}, veio {run.scope}")
     if exp.get("pii", False) != bool(run.pii):
         problems.append(f"PII esperado {exp.get('pii', False)}, veio {run.pii}")
+    asked = bool(run.judge and run.judge.get("complete") is False)
+    clarify_ok = None
+    if "clarify" in exp:
+        # pediu contexto = o juiz disse que faltam dados E a resposta faz pelo menos uma pergunta
+        clarify_ok = (asked and "?" in run.answer) if exp["clarify"] else not asked
+        if not clarify_ok:
+            problems.append("devia pedir contexto e não pediu" if exp["clarify"] else "pediu contexto sem precisar")
 
     return {
         "id": case["id"], "uc": case.get("uc", ""), "question": body["question"],
-        "cited": has_citation(run.answer, run.sources),
+        "cited": has_citation(run.answer, run.sources), "cite_expected": exp.get("cite", True),
+        "clarify_ok": clarify_ok, "judge": run.judge,
         "free_numbers": unsupported_numbers(run.answer, allowed),
         "next_step": has_next_step(run.answer),
         "tools_ok": not tool_problems(exp.get("tools", {}), run.tools) and not (exp.get("no_tools") and run.tools),
@@ -245,7 +257,7 @@ def run_cases(api: str, cases: list[dict], kb: dict, log=print) -> list[dict]:
         answers[case["id"]] = run.answer
         r = evaluate(case, body, run, kb)
         results.append(r)
-        flag = "OK " if not r["problems"] and r["cited"] and not r["free_numbers"] and r["next_step"] else "!! "
+        flag = "OK " if not r["problems"] and (r["cited"] or not r["cite_expected"]) and not r["free_numbers"] and r["next_step"] else "!! "
         log(f"{flag}{r['id']:<22} {r['total_s']:>5.1f}s  cit={'s' if r['cited'] else 'N'}  "
             f"num={len(r['free_numbers'])}  passo={'s' if r['next_step'] else 'N'}  {'; '.join(r['problems'])}")
     return results
@@ -271,12 +283,15 @@ def summarize(results: list[dict], cases: list[dict]) -> list[dict]:
     with_guard = [r for r, c in zip(results, cases) if c.get("expect", {}).get("scope") or c.get("expect", {}).get("pii")]
     first = [r["first_text_s"] for r in results if r["first_text_s"] is not None]
     total = [r["total_s"] for r in results]
+    must_cite = [r for r in results if r["cite_expected"]]
+    with_clarify = [r for r in results if r["clarify_ok"] is not None]
     rows = [
-        ("Respostas com fonte citada", _pct(sum(r["cited"] for r in results), n), "100 %", lambda v: v >= 100),
+        ("Respostas com fonte citada", _pct(sum(r["cited"] for r in must_cite), len(must_cite)), "100 %", lambda v: v >= 100),
         ("Respostas com números inventados", sum(bool(r["free_numbers"]) for r in results), "0", lambda v: v == 0),
         ("Respostas com próximo passo", _pct(sum(r["next_step"] for r in results), n), "≥ 90 %", lambda v: v >= 90),
         ("Calculadora certa e valores certos", _pct(sum(r["tools_ok"] for r in with_tools), len(with_tools)), "100 %", lambda v: v >= 100),
         ("Guardrails e PII como esperado", _pct(sum(r["guardrails_ok"] for r in with_guard), len(with_guard)), "100 %", lambda v: v >= 100),
+        ("Pede contexto quando faltam dados (e só então)", _pct(sum(r["clarify_ok"] for r in with_clarify), len(with_clarify)), "100 %", lambda v: v >= 100),
         ("Latência até ao 1.º texto, p50 (s)", _p(first, 50), f"< {LATENCY_TARGET_S:g}", lambda v: v is not None and v < LATENCY_TARGET_S),
         ("Latência total, p95 (s)", _p(total, 95), "(informativo)", lambda v: True),
     ]

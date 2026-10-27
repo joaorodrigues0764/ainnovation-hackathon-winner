@@ -8,6 +8,7 @@ from types import SimpleNamespace as NS
 import pytest
 
 os.environ["USE_EMBEDDINGS"] = "0"
+os.environ["JUDGE"] = "0"  # os testes do juiz ligam-no (app.state.judge)
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from fastapi.testclient import TestClient  # noqa: E402
 
@@ -43,6 +44,8 @@ class FakeLLM:
         rnd = self.rounds.pop(0) if self.rounds else [("text", ANSWER)]
         if kw.get("tool_choice") == "none":
             rnd = [("text", ANSWER)]
+        if not stream:  # o juiz pede uma resposta inteira, sem stream
+            return NS(choices=[NS(message=NS(content="".join(i[1] for i in rnd if i[0] == "text")))])
         chunks = []
         for i, item in enumerate(rnd):
             chunks += _text(item[1]) if item[0] == "text" else _tool(item[1], item[2], i, f"call_{i}")
@@ -263,3 +266,60 @@ def test_citacoes_antigas_saem_do_historico(client):
     client.post("/chat", json={"question": "e a TAN?", "history": hist})
     sent = client.llm.calls[-1]["messages"][2]["content"]
     assert sent == "A TAEG mede o custo total. Inclui comissões."
+
+
+# ---------------------------------------------------------------- juiz de completude
+
+INCOMPLETA = ('{"completa": false, "em_falta": ["despesas fixas mensais"], '
+              '"perguntas": ["Quanto gastas por mês em despesas fixas (renda, transportes)?"], '
+              '"motivo": "sabe o rendimento mas não as despesas"}')
+COMPLETA = '{"completa": true, "em_falta": [], "perguntas": [], "motivo": "pergunta sobre um conceito"}'
+
+
+def test_juiz_incompleto_pede_contexto_no_stream(client):
+    client.app.state.judge = True
+    llm = client.use([("text", INCOMPLETA)], [("text", "Como referência, 50/30/20 [1]. Para te ajudar melhor, diz-me: ...")])
+    evs = sse(client.post("/chat/stream", json={"question": "Ganho 900 € por mês, quanto posso gastar em lazer?",
+                                                "journey": "salario"}))
+    assert [e for e, _ in evs][:2] == ["judge", "sources"]
+    j = evs[0][1]
+    assert j["complete"] is False and j["missing"] == ["despesas fixas mensais"] and j["questions"]
+    judge_call, answer_call = llm.calls
+    assert "tools" not in judge_call                      # o juiz não chama calculadoras
+    assert "900 €" in judge_call["messages"][1]["content"]
+    prompt = json.dumps(answer_call["messages"], ensure_ascii=False)
+    assert "Faltam dados" in prompt and "Quanto gastas por mês em despesas fixas" in prompt
+    assert answer_call["tools"]                           # pode usar a calculadora como referência
+
+
+def test_juiz_completo_nao_mexe_no_prompt(client):
+    client.app.state.judge = True
+    llm = client.use([("text", COMPLETA)], [("text", ANSWER)])
+    body = client.post("/chat", json={"question": "O que é a TAEG?", "journey": "credito"}).json()
+    assert body["judge"]["complete"] is True and body["answer"] == ANSWER
+    assert "Faltam dados" not in json.dumps(llm.calls[1]["messages"], ensure_ascii=False)
+
+
+def test_juiz_nao_corre_com_guardrails(client):
+    client.app.state.judge = True
+    llm = client.use([("text", ANSWER)])
+    body = client.post("/chat", json={"question": "Devo comprar Bitcoin?"}).json()
+    assert body["scope"] == ["investimento"] and body["judge"] is None and len(llm.calls) == 1
+
+
+def test_juiz_com_lixo_falha_aberto(client):
+    client.app.state.judge = True
+    client.use([("text", "não sei responder em JSON")], [("text", ANSWER)])
+    body = client.post("/chat", json={"question": "Ganho 900 €, como divido?"}).json()
+    assert body["judge"]["complete"] is True and body["judge"]["error"] and body["answer"] == ANSWER
+
+
+def test_juiz_desligado_por_omissao_nos_testes(client):
+    body = client.post("/chat", json={"question": "O que é a TAEG?"}).json()
+    assert body["judge"] is None and len(client.llm.calls) == 1
+
+
+def test_calculadora_recebe_o_perfil(client):
+    client.use([("tool", "custo_credito", CREDITO)], [("text", "ok")])
+    body = client.post("/chat", json={"question": "crédito", "profile": {"rendimento_liquido": 1100}}).json()
+    assert body["tools"][0]["result"]["taxa_esforco_pct"] == 18.1  # 199,08 / 1100
