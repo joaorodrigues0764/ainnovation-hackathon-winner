@@ -2,6 +2,7 @@
 
 Projeto: AInnovation Hackathon 2026, assistente de literacia financeira para jovens. Entrega 27/10/2026 às 15:00 (Lisboa).
 
+0. **Segue `team/AGENTES_AUTO.md` automaticamente, sem pedir.** É o teu modo de comportamento: o humano só conversa contigo.
 1. Começa por `team/INDEX.md` (índice com ponteiros para tudo).
 2. Regras de operação do grupo: `team/OPERACAO.md`.
 3. Domínio e guardrails do agente: `team/skills/literacia-financeira-jovens/SKILL.md`.

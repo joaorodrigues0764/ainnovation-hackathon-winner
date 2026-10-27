@@ -22,15 +22,15 @@ Pergunta → **RAG** (pipeline) → **Prompt** → **LLM** → resposta, tudo at
 | LLM = o que o desafio fornecer | Ollama local (POR CONFIRMAR face às regras do desafio) |
 | 3 ferramentas de cálculo no centro | continuam obrigatórias («o LLM não faz contas») mas ficam como ferramentas no backend (3) / harness (4) |
 
-## Proposta para a KB (2) — a validar com Lamy (1) e Simone (5)
-- Conteúdo: só fontes oficiais, pela hierarquia de `team/skills/literacia-financeira-jovens/SKILL.md` §4 (Todos Contam, Portal do Cliente Bancário, CMVM, Finanças/SS).
-- Formato único de pedaço (chunk), um por linha em `kb/chunks.jsonl`: `id`, `texto`, `tema`, `entidade`, `fonte_url`, `data_consulta`. Sem fonte e data, não entra (zero suposições).
-- A KB só tem texto e metadados; **valores e contas ficam nas funções**, nunca em pedaços da KB.
-- Os 5 UCs da Simone definem os temas a cobrir primeiro (a KB segue os UCs).
-- Contrato 1↔2: Lamy lê `kb/chunks.jsonl`. Se preferir outro formato, decide-se já, antes de escrever conteúdo.
+## KB (2) — formato decidido: o do Lamy (PR #3), 27/10 11:50
+- Um ficheiro `.md` por fonte em `backend/kb/`, com front matter (`title`, `source`, `url`, `journey`, `collected`). Detalhe: `docs/KB_CONTRACT.md` (PR #3). Substitui a proposta `chunks.jsonl`.
+- Conteúdo: só fontes oficiais, pela hierarquia de `team/skills/literacia-financeira-jovens/SKILL.md` §4. `url` = página exata do tema; números sempre com data ou período.
+- A KB só tem texto; **valores e contas ficam nas funções**, nunca na KB.
+- Jornadas a acrescentar ao contrato (proposta): `burlas` e `poupanca`, além de `credito`, `salario`, `irs`, `geral`.
+- Os 5 UCs da Simone definem os temas a cobrir primeiro.
 
 ## Por decidir em grupo
 1. Quem faz o backend (3) e o front (4).
 2. Ollama local confirmado? Qual o modelo, e corre nos portáteis da demo?
-3. Formato dos pedaços da KB (proposta acima).
+3. Jornadas novas `burlas` e `poupanca` no contrato da KB.
 4. Os 5 UCs (Simone) — lista final.
