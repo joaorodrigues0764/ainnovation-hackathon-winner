@@ -80,7 +80,8 @@ const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,
 /** Até 3 perguntas para a última troca terminada; nunca repete perguntas já feitas na conversa. */
 export function suggestFollowUps(exchanges: Exchange[], journey: JourneyId): string[] {
   const last = exchanges.at(-1);
-  if (!last || last.status !== "done") return [];
+  // se o juiz achou que faltam dados, a resposta já está a fazer perguntas: não distrair com outras
+  if (!last || last.status !== "done" || last.judge?.complete === false) return [];
   const asked = new Set(exchanges.map((x) => norm(x.question)));
   const pool = [
     ...fromTools(last, exchanges),

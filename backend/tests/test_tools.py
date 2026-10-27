@@ -44,3 +44,18 @@ def test_taxas_em_decimal_sem_ambiguidade_no_1_porcento():
                 assert "decimal" in p["description"], (s["function"]["name"], nome)
     r = run_tool("juros_compostos", '{"deposito_mensal": 100, "taxa_anual": 0.01, "anos": 1}')
     assert 1200 < r["valor_final"] < 1210
+
+
+def test_orcamento_divide_tambem_o_que_sobra():
+    # AVALIACAO C1: "recebo 400 €, gasto 150, como divido o resto?" -> 50/30/20 dos 250 € feito em Python
+    r = run_tool("orcamento", '{"entradas": 400, "gastos": 150}')
+    assert r["saldo"] == 250.0
+    assert r["regra_do_que_sobra"] == {"necessidades": 125.0, "desejos": 75.0, "poupanca": 50.0}
+    assert "regra_do_que_sobra" not in run_tool("orcamento", '{"entradas": 900, "gastos": 0}')
+
+
+def test_taxa_de_esforco_com_o_rendimento_do_perfil():
+    args = '{"montante": 8000, "taxa_anual_nominal": 0.09, "prestacoes": 60}'
+    r = run_tool("custo_credito", args, profile={"rendimento_liquido": 1100})
+    assert r["prestacao_mensal"] == 166.07 and r["taxa_esforco_pct"] == 15.1
+    assert "taxa_esforco_pct" not in run_tool("custo_credito", args)

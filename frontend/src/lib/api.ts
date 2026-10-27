@@ -46,6 +46,15 @@ export interface ToolCall {
   result: Record<string, unknown>;
 }
 
+export interface Judge {
+  complete: boolean;
+  missing: string[];
+  questions: string[];
+  reason: string;
+  ms: number;
+  error?: string | null;
+}
+
 export interface Health {
   status: string;
   chunks: number;
@@ -55,6 +64,7 @@ export interface Health {
 
 export type StreamEvent =
   | { event: "warning"; data: { text: string; pii: string[] } }
+  | { event: "judge"; data: Judge }
   | { event: "sources"; data: { sources: Source[]; chunks: Chunk[]; scope: string[] } }
   | { event: "tool"; data: ToolCall }
   | { event: "delta"; data: { text: string } }
